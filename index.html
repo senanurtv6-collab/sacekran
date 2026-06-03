@@ -186,6 +186,8 @@
         .stok-form-row > div { flex: 1; min-width: 150px; }
         .stok-arama { margin-bottom: 15px; }
         .stok-arama input { padding: 10px; border: 2px solid #2980b9; border-radius: 6px; width: 100%; font-size: 14px; }
+        
+        .duzenleme-tarihi { color: #8e44ad; font-weight: bold; font-size: 11px; }
     </style>
 </head>
 <body>
@@ -770,7 +772,7 @@
         };
         
         database.ref('sacKesim/').set(data).then(function() {
-            console.log("✅ Firebase'e kaydedildi");
+            console.log("✅ Firebase'e kaydedildi (aktarilanEvraklar dahil)");
             updateSyncStatus(true);
             saveToLocal();
         }).catch(function(error) {
@@ -797,7 +799,7 @@
                 urunleriGuncelle();
                 saveToLocal();
                 updateSyncStatus(true);
-                console.log("✅ Firebase'den yüklendi,", gecmisVeriler.length, "kayıt");
+                console.log("✅ Firebase'den yüklendi,", gecmisVeriler.length, "kayıt, aktarilan:", aktarilanEvraklar.length);
                 
                 if (aktifKullanici) {
                     stokDuzenleButonKontrol();
@@ -1026,7 +1028,8 @@
             "Grup": grup, 
             "Olusturan": aktifKullanici, 
             "Duzenleyen": "", 
-            "Duzenlendi": false, 
+            "Duzenlendi": false,
+            "DuzenlemeTarihi": "",
             "Kayıt Tarihi": tarihStr,
             "Kayıt Saati": saatStr,
             "Kalemler": kalemler 
@@ -1220,6 +1223,7 @@
             if (!evrak.Olusturan) evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
             if (!evrak.hasOwnProperty("Duzenlendi")) evrak.Duzenlendi = false;
             if (!evrak.hasOwnProperty("Duzenleyen")) evrak.Duzenleyen = "";
+            if (!evrak.hasOwnProperty("DuzenlemeTarihi")) evrak.DuzenlemeTarihi = "";
             if (!evrak["Seri No"] || evrak["Seri No"] === "SAC1") evrak["Seri No"] = SERI_NO;
             if (!evrak["Kayıt Tarihi"]) evrak["Kayıt Tarihi"] = "";
             if (!evrak["Kayıt Saati"]) evrak["Kayıt Saati"] = "";
@@ -1250,9 +1254,10 @@
         let start = (currentPage - 1) * pageSize;
         let pageData = filteredVeriler.slice(start, start + pageSize);
         
+        // YENİ: Düzenleme Tarihi sütunu eklendi
         let html = '<table><thead><tr>';
         html += '<th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox"></th>';
-        html += '<th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Durum</th><th>İşlem</th>';
+        html += '<th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Düzenleme Tarihi</th><th>Durum</th><th>İşlem</th>';
         html += '</tr></thead><tbody>';
         
         pageData.forEach(function(row) {
@@ -1262,12 +1267,14 @@
             let durumClass = getDurumClass(durum);
             let kayitTarihi = row["Kayıt Tarihi"] || "";
             let kayitSaati = row["Kayıt Saati"] || "";
+            let duzenlemeTarihi = row["DuzenlemeTarihi"] || "-";
             html += '<tr data-globalidx="' + globalIdx + '">';
             html += '<td class="checkbox-col"><input type="checkbox" class="evrak-checkbox" data-idx="' + globalIdx + '" ' + checked + '></td>';
             html += '<td>' + row["Seri No"] + '</td><td>' + row["Sıra No"] + '</td><td>' + row["Grup"] + '</td>';
             html += '<td>' + (row["Olusturan"] || "") + '</td>';
             html += '<td>' + kayitTarihi + '</td>';
             html += '<td>' + kayitSaati + '</td>';
+            html += '<td class="duzenleme-tarihi">' + duzenlemeTarihi + '</td>';
             html += '<td class="' + durumClass + '">' + durum + '</td>';
             html += '<td><button class="btn btn-info btn-sm" onclick="detayGoster(' + globalIdx + ')">📄 Detay</button> ';
             html += '<button class="btn btn-danger btn-sm" onclick="evrakSil(' + globalIdx + ')">🗑️ Sil</button></td>';
@@ -1359,7 +1366,7 @@
         gecmisYukle(); 
     };
 
-    // Excel Aktarma
+    // Excel Aktarma - DÜZELTİLDİ: Firebase senkronizasyonu ile
     document.getElementById("seciliExceleAktarBtn").onclick = function() {
         if (seciliEvrakIndisleri.size === 0) { 
             alert("Lütfen en az bir evrak seçin!"); 
@@ -1374,13 +1381,19 @@
             return; 
         }
         
+        // Aktarılan evrakları işaretle ve FIREBASE'E KAYDET
         seciliEvraklar.forEach(function(evrak) { 
-            if (!aktarilanEvraklar.includes(evrak["Sıra No"])) aktarilanEvraklar.push(evrak["Sıra No"]); 
+            if (!aktarilanEvraklar.includes(evrak["Sıra No"])) {
+                aktarilanEvraklar.push(evrak["Sıra No"]); 
+            }
         });
+        
+        // ÖNEMLİ: syncData() ile Firebase'e aktarilanEvraklar da gönderiliyor
         syncData();
         
+        // Excel oluşturma
         let html = '<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th{background:#2c3e50;color:white;padding:8px}td{padding:8px;border:1px solid black}</style></head><body><table border="1">';
-        html += '<tr><th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Düzenleyen</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Durum</th><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr>';
+        html += '<tr><th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Düzenleyen</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Düzenleme Tarihi</th><th>Durum</th><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr>';
         
         seciliEvraklar.forEach(function(evrak) {
             let kalemler = evrak.Kalemler || [];
@@ -1388,11 +1401,12 @@
             let duzenleyen = evrak["Duzenleyen"] || "";
             let kayitTarihi = evrak["Kayıt Tarihi"] || "";
             let kayitSaati = evrak["Kayıt Saati"] || "";
+            let duzenlemeTarihi = evrak["DuzenlemeTarihi"] || "";
             if (kalemler.length === 0) {
-                html += '<tr><td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td><td>' + (evrak["Olusturan"]||"") + '</td><td>' + duzenleyen + '</td><td>' + kayitTarihi + '</td><td>' + kayitSaati + '</td><td>' + durum + '</td><td colspan="6">-</td></tr>';
+                html += '<tr><td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td><td>' + (evrak["Olusturan"]||"") + '</td><td>' + duzenleyen + '</td><td>' + kayitTarihi + '</td><td>' + kayitSaati + '</td><td>' + duzenlemeTarihi + '</td><td>' + durum + '</td><td colspan="6">-</td></tr>';
             } else {
                 kalemler.forEach(function(k) {
-                    html += '<tr><td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td><td>' + (evrak["Olusturan"]||"") + '</td><td>' + duzenleyen + '</td><td>' + kayitTarihi + '</td><td>' + kayitSaati + '</td><td>' + durum + '</td><td>' + (k["Stok Kodu"]||"") + '</td><td>' + (k["Stok İsmi"]||"") + '</td><td>' + formatNumberDisplay(k["Miktar"]) + '</td><td>' + formatNumberDisplay(k["1 Plaka (kg)"]) + '</td><td>' + formatNumberDisplay(k["Toplam Kg"]) + '</td><td>' + (k["Açıklama"]||"") + '</td></tr>';
+                    html += '<tr><td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td><td>' + (evrak["Olusturan"]||"") + '</td><td>' + duzenleyen + '</td><td>' + kayitTarihi + '</td><td>' + kayitSaati + '</td><td>' + duzenlemeTarihi + '</td><td>' + durum + '</td><td>' + (k["Stok Kodu"]||"") + '</td><td>' + (k["Stok İsmi"]||"") + '</td><td>' + formatNumberDisplay(k["Miktar"]) + '</td><td>' + formatNumberDisplay(k["1 Plaka (kg)"]) + '</td><td>' + formatNumberDisplay(k["Toplam Kg"]) + '</td><td>' + (k["Açıklama"]||"") + '</td></tr>';
                 });
             }
         });
@@ -1405,9 +1419,11 @@
         link.click(); 
         document.body.removeChild(link); 
         URL.revokeObjectURL(link.href);
+        
+        // Sayfayı yenile - artık Firebase'den güncel aktarilanEvraklar gelecek
         filteredVeriler = gecmisVeriler.slice(); 
         gecmisYukle();
-        alert(seciliEvraklar.length + " evrak Excel'e aktarıldı!");
+        alert(seciliEvraklar.length + " evrak Excel'e aktarıldı! ✅\n\n🔥 Firebase senkronize edildi - diğer bilgisayarlarda da 'Aktarıldı' olarak görünecek.");
     };
     
     document.getElementById("tumunuSecBtn").onclick = function() {
@@ -1456,6 +1472,7 @@
         let duzenleyen = row["Duzenleyen"] || "Yok";
         let kayitTarihi = row["Kayıt Tarihi"] || "";
         let kayitSaati = row["Kayıt Saati"] || "";
+        let duzenlemeTarihi = row["DuzenlemeTarihi"] || "Henüz düzenlenmedi";
         let icerik = '<div class="detay-row"><span class="detay-label">Seri No:</span><span class="detay-value">' + row["Seri No"] + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Sıra No:</span><span class="detay-value">' + row["Sıra No"] + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Grup:</span><span class="detay-value">' + row["Grup"] + '</span></div>';
@@ -1463,6 +1480,7 @@
         icerik += '<div class="detay-row"><span class="detay-label">Düzenleyen:</span><span class="detay-value">' + duzenleyen + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Kayıt Tarihi:</span><span class="detay-value">' + kayitTarihi + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Kayıt Saati:</span><span class="detay-value">' + kayitSaati + '</span></div>';
+        icerik += '<div class="detay-row"><span class="detay-label">Düzenleme Tarihi:</span><span class="detay-value duzenleme-tarihi">' + duzenlemeTarihi + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Durum:</span><span class="detay-value ' + getDurumClass(durum) + '">' + durum + '</span></div>';
         icerik += '<hr><h3>📦 Kalemler</h3>';
         icerik += '<table style="width:100%"><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';
@@ -1569,6 +1587,7 @@
         tbody.appendChild(row);
     }
     
+    // DÜZELTİLDİ: Kayıt tarihi korunuyor, düzenleme tarihi ayrı kaydediliyor
     document.getElementById("detayKaydetBtn").onclick = function() {
         let idx = detayEditingIdx; 
         if (idx===null||idx<0||idx>=gecmisVeriler.length) return;
@@ -1599,11 +1618,14 @@
         gecmisVeriler[idx]["Kalemler"] = yeniKalemler;
         gecmisVeriler[idx]["Duzenlendi"] = true;
         gecmisVeriler[idx]["Duzenleyen"] = aktifKullanici;
+        
+        // ÖNEMLİ: Düzenleme tarihi güncellenir, Kayıt Tarihi KORUNUR
         let simdi = new Date();
-        gecmisVeriler[idx]["Kayıt Tarihi"] = simdi.toLocaleDateString('tr-TR') + " (düzenlendi)";
-        gecmisVeriler[idx]["Kayıt Saati"] = simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        gecmisVeriler[idx]["DuzenlemeTarihi"] = simdi.toLocaleDateString('tr-TR') + " " + simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        // Kayıt Tarihi ve Saati değişmez, korunur!
+        
         syncData();
-        alert("✅ Değişiklikler kaydedildi! Düzenleyen: " + aktifKullanici);
+        alert("✅ Değişiklikler kaydedildi! Düzenleyen: " + aktifKullanici + "\nDüzenleme Tarihi: " + gecmisVeriler[idx]["DuzenlemeTarihi"]);
         document.getElementById("detayModal").style.display = "none";
         filteredVeriler = gecmisVeriler.slice(); 
         gecmisYukle();
@@ -1866,7 +1888,8 @@
     console.log("📦 Stok Düzenleme: Sadece Muhammed kullanıcısı erişebilir");
     console.log("📋 Seri No: SD");
     console.log("🔥 Firebase Veritabanı: sackesim-5e216");
-    console.log("💡 Firebase anahtar encode/decode sistemi aktif (nokta, #, $, /, [, ] karakterleri için)");
+    console.log("🔄 aktarilanEvraklar Firebase'de senkronize ediliyor");
+    console.log("📅 Düzenleme Tarihi özelliği aktif - Kayıt Tarihi korunuyor");
 </script>
 </body>
 </html>
