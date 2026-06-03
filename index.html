@@ -57,6 +57,7 @@
         .header-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .btn { background: #27ae60; color: white; border: none; padding: 12px 25px; cursor: pointer; border-radius: 6px; font-size: 15px; font-weight: 500; transition: all 0.3s; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn:disabled { background: #95a5a6; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
         .btn-secondary { background: #2980b9; }
         .btn-danger { background: #e74c3c; }
         .btn-warning { background: #f39c12; }
@@ -98,6 +99,7 @@
         .gecmis-table-container { max-height: 600px; overflow-y: auto; border: 1px solid #ddd; margin: 10px 0; border-radius: 6px; }
         .gecmis-table-container tr:hover { background-color: #f0f8ff; }
         .gecmis-table-container tr.selected { background-color: #c8e6f5 !important; }
+        .gecmis-table-container tr.kilitli { background-color: #fff3cd; }
         
         .detay-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; align-items: center; }
         .detay-label { font-weight: bold; color: #2c3e50; min-width: 140px; }
@@ -149,6 +151,9 @@
         .kullanici-card { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 10px; }
         .kullanici-card span { font-weight: bold; color: #2c3e50; }
         .kullanici-card .btn-group { display: flex; gap: 5px; }
+        .kullanici-rol { font-size: 11px; padding: 3px 8px; border-radius: 10px; margin-left: 8px; }
+        .kullanici-rol.admin { background: #8e44ad; color: white; }
+        .kullanici-rol.kullanici { background: #e3f2fd; color: #1565c0; }
         
         .sifre-modal-content { width: 450px; }
         .eski-sifre-group { margin-bottom: 10px; background: #fff3cd; padding: 10px; border-radius: 6px; }
@@ -188,6 +193,31 @@
         .stok-arama input { padding: 10px; border: 2px solid #2980b9; border-radius: 6px; width: 100%; font-size: 14px; }
         
         .duzenleme-tarihi { color: #8e44ad; font-weight: bold; font-size: 11px; }
+        
+        .kilitli-bilgi { 
+            background: #ffe0b2; 
+            border: 1px solid #ff9800; 
+            padding: 12px 18px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            color: #e65100; 
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .kilitli-bilgi .kilit-icon { font-size: 24px; }
+        
+        .yetkisiz-islem { 
+            background: #ffebee; 
+            border: 2px solid #ef5350; 
+            padding: 15px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            color: #c62828; 
+            text-align: center;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -219,7 +249,7 @@
         <h1>📋 Günlük Sac Kesim Sistemi <span id="syncStatus" class="sync-status">🔄 Bağlanıyor...</span></h1>
         
         <div class="user-info">
-            <span>👤 Hoş geldiniz, <span id="currentUser">-</span></span>
+            <span>👤 Hoş geldiniz, <span id="currentUser">-</span> <span id="userRolBadge"></span></span>
             <div style="display:flex; gap:10px;">
                 <button class="btn btn-purple" id="stokDuzenleBtn" style="display:none;">📦 Stok Düzenle</button>
                 <button class="btn btn-purple" id="ayarlarBtn">⚙️ Ayarlar</button>
@@ -261,6 +291,7 @@
 
         <div id="oncekiGirislerAlan" class="hidden">
             <h2>📂 Önceki Girişler</h2>
+            <div id="yetkiBilgiAlani"></div>
             <div class="filtre-satir">
                 <div><label>Seri No</label><input type="text" id="filtre_seri" placeholder="Filtrele..."></div>
                 <div><label>Sıra No</label><input type="text" id="filtre_sira" placeholder="Filtrele..."></div>
@@ -385,6 +416,7 @@
     <div class="modal-content">
         <span class="close-modal" onclick="kapatModal('detayModal')">&times;</span>
         <h2>📄 Evrak Detayı ve Düzenleme</h2>
+        <div id="detayKilitBilgi"></div>
         <div id="detayIcerik"></div>
         <div id="detayDuzenlemeAlani" style="display:none;"></div>
         <div class="action-buttons">
@@ -492,10 +524,20 @@
     const database = firebase.database();
     
     // ============ SİSTEM DEĞİŞKENLERİ ============
-    let kullanicilar = JSON.parse(localStorage.getItem("kullanicilar")) || { "SAC1": "sac1sac", "SAC2": "2sac2" };
+    // Kullanıcılar: SAC1, SAC2, SAC3, SAC4 (standart kullanıcı) ve Muhammed (admin)
+    let kullanicilar = JSON.parse(localStorage.getItem("kullanicilar")) || { 
+        "SAC1": "sac1sac", 
+        "SAC2": "2sac2",
+        "SAC3": "sac3sac",
+        "SAC4": "4sac4"
+    };
     if (!kullanicilar["Muhammed"]) {
         kullanicilar["Muhammed"] = "muhammed123";
     }
+    
+    // Admin kullanıcı listesi (bu kullanıcılar her şeyi yapabilir)
+    const adminKullanicilar = ["Muhammed"];
+    
     const adminBilgileri = { "admin": "sena2003" };
     const SERI_NO = "SD";
     let aktifKullanici = null;
@@ -661,6 +703,45 @@
     function getPlakaWeight(kod) { return plakaWeights[kod] || 0; }
     function tumStoklariGetir() { return Object.keys(stokBilgileri); }
 
+    // ============ YETKİ KONTROL FONKSİYONLARI ============
+    function isAdmin() {
+        return adminKullanicilar.includes(aktifKullanici);
+    }
+    
+    function isStandartKullanici() {
+        return aktifKullanici && !isAdmin();
+    }
+    
+    function evrakAktarildiMi(evrak) {
+        return aktarilanEvraklar.includes(evrak["Sıra No"]);
+    }
+    
+    function evrakKilitliMi(evrak) {
+        return evrakAktarildiMi(evrak);
+    }
+    
+    function kullaniciEvragiDuzenleyebilirMi(evrak) {
+        // Admin her şeyi yapabilir
+        if (isAdmin()) return true;
+        
+        // Standart kullanıcı Excel'e aktarılmış evrakı düzenleyemez
+        if (isStandartKullanici() && evrakKilitliMi(evrak)) return false;
+        
+        // Standart kullanıcı aktarılmamış evrakı düzenleyebilir
+        return true;
+    }
+    
+    function kullaniciEvragiSilebilirMi(evrak) {
+        // Admin her şeyi yapabilir
+        if (isAdmin()) return true;
+        
+        // Standart kullanıcı Excel'e aktarılmış evrakı silemez
+        if (isStandartKullanici() && evrakKilitliMi(evrak)) return false;
+        
+        // Standart kullanıcı aktarılmamış evrakı silebilir
+        return true;
+    }
+
     // ============ SAYI FORMATLAMA ============
     function parseNumber(value) {
         if (typeof value === 'number') return value;
@@ -772,7 +853,7 @@
         };
         
         database.ref('sacKesim/').set(data).then(function() {
-            console.log("✅ Firebase'e kaydedildi (aktarilanEvraklar dahil)");
+            console.log("✅ Firebase'e kaydedildi");
             updateSyncStatus(true);
             saveToLocal();
         }).catch(function(error) {
@@ -799,9 +880,10 @@
                 urunleriGuncelle();
                 saveToLocal();
                 updateSyncStatus(true);
-                console.log("✅ Firebase'den yüklendi,", gecmisVeriler.length, "kayıt, aktarilan:", aktarilanEvraklar.length);
+                console.log("✅ Firebase'den yüklendi,", gecmisVeriler.length, "kayıt");
                 
                 if (aktifKullanici) {
+                    kullaniciRolGuncelle();
                     stokDuzenleButonKontrol();
                     
                     if (document.getElementById("oncekiGirislerAlan") && 
@@ -828,6 +910,17 @@
     }
 
     function syncData() { saveToFirebase(); }
+
+    function kullaniciRolGuncelle() {
+        const badge = document.getElementById("userRolBadge");
+        if (badge) {
+            if (isAdmin()) {
+                badge.innerHTML = '<span class="kullanici-rol admin">Admin</span>';
+            } else {
+                badge.innerHTML = '<span class="kullanici-rol kullanici">Kullanıcı</span>';
+            }
+        }
+    }
 
     // ============ YARDIMCI FONKSİYONLAR ============
     function getSiraNo() {
@@ -884,6 +977,7 @@
             document.getElementById("loginPage").style.display = "none";
             document.getElementById("mainPage").style.display = "block";
             document.getElementById("currentUser").textContent = username;
+            kullaniciRolGuncelle();
             stokDuzenleButonKontrol();
             anaSayfayaDon();
             document.getElementById("loginError").style.display = "none";
@@ -900,6 +994,8 @@
         document.getElementById("loginPage").style.display = "flex";
         const btn = document.getElementById("stokDuzenleBtn");
         if (btn) btn.style.display = "none";
+        const badge = document.getElementById("userRolBadge");
+        if (badge) badge.innerHTML = "";
     };
 
     function anaSayfayaDon() {
@@ -1218,6 +1314,17 @@
         document.getElementById("oncekiGirislerAlan").classList.remove("hidden");
         document.getElementById("ayarlarAlan").classList.add("hidden");
         document.getElementById("stokDuzenleAlan").classList.add("hidden");
+        
+        // Yetki bilgi alanı
+        let yetkiAlani = document.getElementById("yetkiBilgiAlani");
+        if (isStandartKullanici()) {
+            yetkiAlani.innerHTML = '<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Excel\'e aktarılmış evraklar kilitlidir. Sadece <strong>Muhammed</strong> düzenleyebilir ve silebilir.</div>';
+        } else if (isAdmin()) {
+            yetkiAlani.innerHTML = '<div class="kilitli-bilgi" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;"><span class="kilit-icon">👑</span> Admin yetkisi: Tüm evrakları düzenleyebilir ve silebilirsiniz.</div>';
+        } else {
+            yetkiAlani.innerHTML = '';
+        }
+        
         gecmisVeriler = JSON.parse(localStorage.getItem("gecmisVeriler")) || [];
         gecmisVeriler = gecmisVeriler.map(function(evrak) {
             if (!evrak.Olusturan) evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
@@ -1254,7 +1361,6 @@
         let start = (currentPage - 1) * pageSize;
         let pageData = filteredVeriler.slice(start, start + pageSize);
         
-        // YENİ: Düzenleme Tarihi sütunu eklendi
         let html = '<table><thead><tr>';
         html += '<th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox"></th>';
         html += '<th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Düzenleme Tarihi</th><th>Durum</th><th>İşlem</th>';
@@ -1268,16 +1374,28 @@
             let kayitTarihi = row["Kayıt Tarihi"] || "";
             let kayitSaati = row["Kayıt Saati"] || "";
             let duzenlemeTarihi = row["DuzenlemeTarihi"] || "-";
-            html += '<tr data-globalidx="' + globalIdx + '">';
+            let kilitli = evrakKilitliMi(row);
+            let rowClass = kilitli ? 'kilitli' : '';
+            
+            html += '<tr data-globalidx="' + globalIdx + '" class="' + rowClass + '">';
             html += '<td class="checkbox-col"><input type="checkbox" class="evrak-checkbox" data-idx="' + globalIdx + '" ' + checked + '></td>';
             html += '<td>' + row["Seri No"] + '</td><td>' + row["Sıra No"] + '</td><td>' + row["Grup"] + '</td>';
             html += '<td>' + (row["Olusturan"] || "") + '</td>';
             html += '<td>' + kayitTarihi + '</td>';
             html += '<td>' + kayitSaati + '</td>';
             html += '<td class="duzenleme-tarihi">' + duzenlemeTarihi + '</td>';
-            html += '<td class="' + durumClass + '">' + durum + '</td>';
-            html += '<td><button class="btn btn-info btn-sm" onclick="detayGoster(' + globalIdx + ')">📄 Detay</button> ';
-            html += '<button class="btn btn-danger btn-sm" onclick="evrakSil(' + globalIdx + ')">🗑️ Sil</button></td>';
+            html += '<td class="' + durumClass + '">' + durum + (kilitli ? ' 🔒' : '') + '</td>';
+            
+            // İşlem butonları - yetkiye göre disable
+            let duzenleDisable = !kullaniciEvragiDuzenleyebilirMi(row) ? 'disabled' : '';
+            let silDisable = !kullaniciEvragiSilebilirMi(row) ? 'disabled' : '';
+            let duzenleTitle = duzenleDisable ? 'title="Excel\'e aktarılmış evrak kilitli - Sadece Muhammed düzenleyebilir"' : '';
+            let silTitle = silDisable ? 'title="Excel\'e aktarılmış evrak kilitli - Sadece Muhammed silebilir"' : '';
+            
+            html += '<td>';
+            html += '<button class="btn btn-info btn-sm" onclick="detayGoster(' + globalIdx + ')" ' + duzenleDisable + ' ' + duzenleTitle + '>📄 Detay</button> ';
+            html += '<button class="btn btn-danger btn-sm" onclick="evrakSil(' + globalIdx + ')" ' + silDisable + ' ' + silTitle + '>🗑️ Sil</button>';
+            html += '</td>';
             html += '</tr>';
         });
         html += '</tbody></table>'; 
@@ -1366,7 +1484,7 @@
         gecmisYukle(); 
     };
 
-    // Excel Aktarma - DÜZELTİLDİ: Firebase senkronizasyonu ile
+    // Excel Aktarma
     document.getElementById("seciliExceleAktarBtn").onclick = function() {
         if (seciliEvrakIndisleri.size === 0) { 
             alert("Lütfen en az bir evrak seçin!"); 
@@ -1388,7 +1506,6 @@
             }
         });
         
-        // ÖNEMLİ: syncData() ile Firebase'e aktarilanEvraklar da gönderiliyor
         syncData();
         
         // Excel oluşturma
@@ -1420,10 +1537,9 @@
         document.body.removeChild(link); 
         URL.revokeObjectURL(link.href);
         
-        // Sayfayı yenile - artık Firebase'den güncel aktarilanEvraklar gelecek
         filteredVeriler = gecmisVeriler.slice(); 
         gecmisYukle();
-        alert(seciliEvraklar.length + " evrak Excel'e aktarıldı! ✅\n\n🔥 Firebase senkronize edildi - diğer bilgisayarlarda da 'Aktarıldı' olarak görünecek.");
+        alert(seciliEvraklar.length + " evrak Excel'e aktarıldı ve KİTLENDİ! ✅\n\n🔒 Bu evraklar artık sadece Muhammed tarafından düzenlenebilir/silinebilir.\n🔥 Firebase senkronize edildi - diğer bilgisayarlarda da kilitli olarak görünecek.");
     };
     
     document.getElementById("tumunuSecBtn").onclick = function() {
@@ -1468,6 +1584,21 @@
         let row = gecmisVeriler[idx]; 
         if (!row) return;
         detayEditingIdx = idx;
+        
+        // Yetki kontrolü
+        let duzenleyebilir = kullaniciEvragiDuzenleyebilirMi(row);
+        let silebilir = kullaniciEvragiSilebilirMi(row);
+        let kilitli = evrakKilitliMi(row);
+        
+        // Kilit bilgisi
+        let kilitHtml = '';
+        if (kilitli && isStandartKullanici()) {
+            kilitHtml = '<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Bu evrak Excel\'e aktarılmış ve <strong>kilitlenmiştir</strong>. Sadece <strong>Muhammed</strong> düzenleyebilir ve silebilir.</div>';
+        } else if (kilitli && isAdmin()) {
+            kilitHtml = '<div class="kilitli-bilgi" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;"><span class="kilit-icon">👑</span> Bu evrak Excel\'e aktarılmış. Admin yetkinizle düzenleyebilirsiniz.</div>';
+        }
+        document.getElementById("detayKilitBilgi").innerHTML = kilitHtml;
+        
         let durum = getDurum(row);
         let duzenleyen = row["Duzenleyen"] || "Yok";
         let kayitTarihi = row["Kayıt Tarihi"] || "";
@@ -1481,7 +1612,7 @@
         icerik += '<div class="detay-row"><span class="detay-label">Kayıt Tarihi:</span><span class="detay-value">' + kayitTarihi + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Kayıt Saati:</span><span class="detay-value">' + kayitSaati + '</span></div>';
         icerik += '<div class="detay-row"><span class="detay-label">Düzenleme Tarihi:</span><span class="detay-value duzenleme-tarihi">' + duzenlemeTarihi + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Durum:</span><span class="detay-value ' + getDurumClass(durum) + '">' + durum + '</span></div>';
+        icerik += '<div class="detay-row"><span class="detay-label">Durum:</span><span class="detay-value ' + getDurumClass(durum) + '">' + durum + (kilitli ? ' 🔒' : '') + '</span></div>';
         icerik += '<hr><h3>📦 Kalemler</h3>';
         icerik += '<table style="width:100%"><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';
         (row.Kalemler||[]).forEach(function(k) { 
@@ -1491,12 +1622,29 @@
         document.getElementById("detayIcerik").innerHTML = icerik;
         document.getElementById("detayDuzenlemeAlani").style.display = "none"; 
         document.getElementById("detayDuzenlemeAlani").innerHTML = "";
+        
+        // Butonları yetkiye göre ayarla
+        document.getElementById("detayDuzenleBtn").disabled = !duzenleyebilir;
+        document.getElementById("detayDuzenleBtn").title = duzenleyebilir ? '' : 'Excel\'e aktarılmış evrak kilitli - Sadece Muhammed düzenleyebilir';
+        document.getElementById("detaySilBtn").disabled = !silebilir;
+        document.getElementById("detaySilBtn").title = silebilir ? '' : 'Excel\'e aktarılmış evrak kilitli - Sadece Muhammed silebilir';
+        
         document.getElementById("detayDuzenleBtn").classList.remove("hidden"); 
         document.getElementById("detayKaydetBtn").classList.add("hidden");
         document.getElementById("detayModal").style.display = "block";
     };
     
     document.getElementById("detayDuzenleBtn").onclick = function() {
+        let idx = detayEditingIdx;
+        if (idx === null || idx < 0 || idx >= gecmisVeriler.length) return;
+        let row = gecmisVeriler[idx];
+        
+        // Yetki kontrolü
+        if (!kullaniciEvragiDuzenleyebilirMi(row)) {
+            alert("🔒 Bu evrak Excel'e aktarılmış ve kilitlenmiştir!\n\nSadece Muhammed düzenleyebilir.");
+            return;
+        }
+        
         duzenlemeModunuAc();
     };
     
@@ -1587,10 +1735,17 @@
         tbody.appendChild(row);
     }
     
-    // DÜZELTİLDİ: Kayıt tarihi korunuyor, düzenleme tarihi ayrı kaydediliyor
     document.getElementById("detayKaydetBtn").onclick = function() {
         let idx = detayEditingIdx; 
         if (idx===null||idx<0||idx>=gecmisVeriler.length) return;
+        let row = gecmisVeriler[idx];
+        
+        // Yetki kontrolü
+        if (!kullaniciEvragiDuzenleyebilirMi(row)) {
+            alert("🔒 Bu evrak kilitli! Değişiklikler kaydedilemez.");
+            return;
+        }
+        
         let yeniGrup = document.getElementById("editGrup") ? document.getElementById("editGrup").value : gecmisVeriler[idx]["Grup"];
         let kalemRows = document.querySelectorAll("#editKalemlerTbody .edit-kalem-row");
         let yeniKalemler = [];
@@ -1619,10 +1774,8 @@
         gecmisVeriler[idx]["Duzenlendi"] = true;
         gecmisVeriler[idx]["Duzenleyen"] = aktifKullanici;
         
-        // ÖNEMLİ: Düzenleme tarihi güncellenir, Kayıt Tarihi KORUNUR
         let simdi = new Date();
         gecmisVeriler[idx]["DuzenlemeTarihi"] = simdi.toLocaleDateString('tr-TR') + " " + simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        // Kayıt Tarihi ve Saati değişmez, korunur!
         
         syncData();
         alert("✅ Değişiklikler kaydedildi! Düzenleyen: " + aktifKullanici + "\nDüzenleme Tarihi: " + gecmisVeriler[idx]["DuzenlemeTarihi"]);
@@ -1633,6 +1786,14 @@
     
     document.getElementById("detaySilBtn").onclick = function() {
         if (detayEditingIdx !== null && detayEditingIdx >= 0) {
+            let row = gecmisVeriler[detayEditingIdx];
+            
+            // Yetki kontrolü
+            if (!kullaniciEvragiSilebilirMi(row)) {
+                alert("🔒 Bu evrak Excel'e aktarılmış ve kilitlenmiştir!\n\nSadece Muhammed silebilir.");
+                return;
+            }
+            
             document.getElementById("detayModal").style.display = "none";
             if (confirm("Bu evrakı silmek istediğinize emin misiniz?")) {
                 evrakSilOnaylandi(detayEditingIdx);
@@ -1641,6 +1802,15 @@
     };
     
     window.evrakSil = function(idx) {
+        let row = gecmisVeriler[idx];
+        if (!row) return;
+        
+        // Yetki kontrolü
+        if (!kullaniciEvragiSilebilirMi(row)) {
+            alert("🔒 Bu evrak Excel'e aktarılmış ve kilitlenmiştir!\n\nSadece Muhammed silebilir.");
+            return;
+        }
+        
         if (confirm("Bu evrakı silmek istediğinize emin misiniz?")) {
             evrakSilOnaylandi(idx);
         }
@@ -1714,8 +1884,10 @@
     function kullaniciListesiniGoster() {
         let html = '<h4>Mevcut Kullanıcılar</h4>';
         Object.keys(kullanicilar).forEach(function(k) {
+            let isAdminUser = adminKullanicilar.includes(k);
+            let rolBadge = isAdminUser ? '<span class="kullanici-rol admin">Admin</span>' : '<span class="kullanici-rol kullanici">Kullanıcı</span>';
             html += '<div class="kullanici-card">';
-            html += '<span>👤 ' + k + '</span>';
+            html += '<span>👤 ' + k + rolBadge + '</span>';
             html += '<div class="btn-group">';
             html += '<button class="btn btn-info btn-xs" onclick="kullaniciDuzenle(\'' + k + '\')">✏️ Düzenle</button>';
             html += '<button class="btn btn-danger btn-xs" onclick="kullaniciSil(\'' + k + '\')">🗑️ Sil</button>';
@@ -1739,12 +1911,13 @@
         syncData();
         document.getElementById("yeniKullaniciAdi").value = "";
         document.getElementById("yeniKullaniciSifre").value = "";
-        document.getElementById("kullaniciMesaj").innerHTML = "<span class='success'>✅ Kullanıcı eklendi: " + yeniAd + "</span>";
+        document.getElementById("kullaniciMesaj").innerHTML = "<span class='success'>✅ Kullanıcı eklendi: " + yeniAd + " (Standart kullanıcı)</span>";
         kullaniciListesiniGoster();
     };
     
     window.kullaniciSil = function(kullaniciAdi) {
         if (kullaniciAdi === aktifKullanici) { alert("Kendinizi silemezsiniz!"); return; }
+        if (adminKullanicilar.includes(kullaniciAdi)) { alert("Admin kullanıcılar silinemez!"); return; }
         if (Object.keys(kullanicilar).length <= 2) { alert("En az 2 kullanıcı kalmalıdır!"); return; }
         if (confirm(kullaniciAdi + " kullanıcısını silmek istediğinize emin misiniz?")) {
             delete kullanicilar[kullaniciAdi];
@@ -1796,6 +1969,7 @@
             if (aktifKullanici === duzenlenenKullanici) {
                 aktifKullanici = yeniAd;
                 document.getElementById("currentUser").textContent = yeniAd;
+                kullaniciRolGuncelle();
                 stokDuzenleButonKontrol();
             }
         } else if (yeniSifre) {
@@ -1884,12 +2058,11 @@
     
     console.log("✅ Sac Kesim Takip Sistemi - Firebase Destekli Başladı!");
     console.log("🔐 Admin: admin / sena2003 (SADECE AYARLAR İÇİN)");
-    console.log("👤 Kullanıcılar: SAC1/sac1sac, SAC2/2sac2, Muhammed/muhammed123");
-    console.log("📦 Stok Düzenleme: Sadece Muhammed kullanıcısı erişebilir");
+    console.log("👑 Admin Kullanıcı: Muhammed / muhammed123 (Tam yetki)");
+    console.log("👤 Standart Kullanıcılar: SAC1/sac1sac, SAC2/2sac2, SAC3/sac3sac, SAC4/4sac4");
+    console.log("🔒 Güvenlik: Excel'e aktarılan evraklar standart kullanıcılar için kilitlenir");
     console.log("📋 Seri No: SD");
     console.log("🔥 Firebase Veritabanı: sackesim-5e216");
-    console.log("🔄 aktarilanEvraklar Firebase'de senkronize ediliyor");
-    console.log("📅 Düzenleme Tarihi özelliği aktif - Kayıt Tarihi korunuyor");
 </script>
 </body>
 </html>
