@@ -4,240 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Sac Kesim Takip Sistemi - Firebase</title>
-    
-    <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
-    
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a1628; }
-        
-        .login-page { 
-            width: 100%; height: 100vh; 
-            background: linear-gradient(135deg, #0a1628 0%, #1a2a4a 50%, #0a1628 100%);
-            display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden;
-        }
-        
-        .login-container {
-            background: rgba(255,255,255,0.05); backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 50px 40px;
-            width: 420px; box-shadow: 0 20px 60px rgba(0,0,0,0.5); position: relative; z-index: 1;
-        }
-        
-        .login-logo { text-align: center; margin-bottom: 30px; }
-        .login-logo h1 { color: #fff; font-size: 32px; font-weight: 700; letter-spacing: 2px; }
-        .login-logo h1 span { color: #4fc3f7; }
-        .login-logo p { color: #90a4ae; font-size: 14px; margin-top: 5px; letter-spacing: 4px; text-transform: uppercase; }
-        .login-logo .sync-badge { background: #4fc3f7; color: #0a1628; font-size: 10px; padding: 2px 8px; border-radius: 20px; display: inline-block; margin-top: 8px; }
-        
-        .login-form .form-group { margin-bottom: 20px; }
-        .login-form label { color: #b0bec5; font-size: 13px; font-weight: 500; display: block; margin-bottom: 6px; letter-spacing: 1px; }
-        .login-form input {
-            width: 100%; padding: 12px 15px; background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; font-size: 15px; transition: all 0.3s;
-        }
-        .login-form input:focus { outline: none; border-color: #4fc3f7; box-shadow: 0 0 20px rgba(79, 195, 247, 0.1); }
-        .login-form input::placeholder { color: #546e7a; }
-        
-        .login-btn {
-            width: 100%; padding: 14px; background: linear-gradient(135deg, #4fc3f7, #0288d1);
-            border: none; border-radius: 10px; color: #fff; font-size: 16px; font-weight: 600; cursor: pointer;
-            transition: all 0.3s; letter-spacing: 1px; text-transform: uppercase;
-        }
-        .login-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(79, 195, 247, 0.3); }
-        .login-error { color: #ef5350; font-size: 13px; text-align: center; margin-top: 10px; display: none; }
-        
-        .main-page { display: none; width: 100%; min-height: 100vh; background: #f5f5f5; padding: 20px; }
-        .container { max-width: 1600px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #2c3e50; margin-bottom: 20px; font-size: 28px; }
-        h2 { color: #2c3e50; margin-bottom: 15px; }
-        h3 { color: #2980b9; margin: 15px 0; }
-        
-        .header-buttons { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
-        .btn { background: #27ae60; color: white; border: none; padding: 12px 25px; cursor: pointer; border-radius: 6px; font-size: 15px; font-weight: 500; transition: all 0.3s; }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .btn:disabled { background: #95a5a6; cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
-        .btn-secondary { background: #2980b9; }
-        .btn-danger { background: #e74c3c; }
-        .btn-warning { background: #f39c12; }
-        .btn-info { background: #00bcd4; color: white; }
-        .btn-success { background: #27ae60; }
-        .btn-purple { background: #8e44ad; color: white; }
-        .btn-sm { padding: 6px 12px; font-size: 13px; }
-        .btn-xs { padding: 4px 8px; font-size: 11px; }
-        
-        .form-group { margin: 15px 0; }
-        label { font-weight: bold; display: block; margin-bottom: 5px; color: #333; }
-        select, input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
-        select:focus, input:focus { outline: none; border-color: #2980b9; box-shadow: 0 0 0 3px rgba(41,128,185,0.1); }
-        
-        table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 12px; }
-        th, td { border: 1px solid #ddd; padding: 5px; text-align: center; }
-        th { background-color: #2c3e50; color: white; position: sticky; top: 0; z-index: 10; font-size: 11px; }
-        
-        .small-input { width: 60px; padding: 4px; text-align: center; }
-        .plaka-input { width: 75px; background: #f0f0f0; padding: 4px; text-align: center; font-size: 12px; }
-        .toplam-input { width: 80px; background: #e8f8e8; font-weight: bold; padding: 4px; text-align: center; font-size: 12px; }
-        .edit-input { padding: 4px; text-align: center; border: 1px solid #4fc3f7; background: #fff; }
-        .edit-aciklama { width: 120px; padding: 4px; border: 1px solid #4fc3f7; background: #fff; font-size: 11px; }
-        .stok-select { width: 140px; padding: 4px; border: 1px solid #4fc3f7; background: #fff; font-size: 11px; }
-        .miktar-input { width: 65px; padding: 4px; text-align: center; border: 1px solid #4fc3f7; background: #fff; }
-        .plaka-display { width: 65px; padding: 4px; text-align: center; background: #f0f0f0; border: 1px solid #ddd; font-size: 12px; }
-        .toplam-display { width: 70px; padding: 4px; text-align: center; background: #e8f8e8; font-weight: bold; border: 1px solid #ddd; font-size: 12px; }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
-        .modal-content { background: white; margin: 2% auto; padding: 30px; width: 95%; max-width: 1100px; border-radius: 12px; position: relative; max-height: 90vh; overflow-y: auto; }
-        .modal-content h2 { margin-bottom: 20px; }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 28px; cursor: pointer; color: #999; }
-        .close-modal:hover { color: #333; }
-        
-        .hidden { display: none; }
-        .success { color: green; font-weight: bold; }
-        .error { color: red; font-weight: bold; }
-        
-        .gecmis-table-container { max-height: 600px; overflow-y: auto; border: 1px solid #ddd; margin: 10px 0; border-radius: 6px; }
-        .gecmis-table-container tr:hover { background-color: #f0f8ff; }
-        .gecmis-table-container tr.selected { background-color: #c8e6f5 !important; }
-        .gecmis-table-container tr.kilitli { background-color: #fff3cd; }
-        
-        .detay-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #eee; align-items: center; }
-        .detay-label { font-weight: bold; color: #2c3e50; min-width: 140px; }
-        .detay-value { color: #333; flex: 1; text-align: right; }
-        
-        .pagination { display: flex; gap: 5px; justify-content: center; margin: 15px 0; flex-wrap: wrap; }
-        .pagination button { padding: 6px 12px; cursor: pointer; border: 1px solid #ddd; background: white; border-radius: 4px; }
-        .pagination button:hover { background: #f0f0f0; }
-        .pagination button.active { background: #2c3e50; color: white; border-color: #2c3e50; }
-        
-        .user-info { background: #e8f4f8; padding: 15px 20px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .user-info span { font-weight: bold; color: #2c3e50; font-size: 16px; }
-        .logout-btn { background: #e74c3c; color: white; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: all 0.3s; }
-        .logout-btn:hover { background: #c0392b; transform: scale(1.05); }
-        
-        .filtre-satir { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
-        .filtre-satir > div { flex: 1; min-width: 150px; }
-        .filtre-satir input, .filtre-satir select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
-        
-        .info-note { background: #fff3cd; border: 1px solid #ffe69c; padding: 15px; border-radius: 6px; margin: 15px 0; color: #856404; }
-        
-        .excel-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; gap: 10px; flex-wrap: wrap; }
-        .select-info { background: #e3f2fd; padding: 8px 15px; border-radius: 6px; font-size: 14px; color: #1565c0; }
-        
-        .action-buttons { margin-top: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .checkbox-col { width: 40px; }
-        
-        .admin-modal-content { width: 400px; }
-        .admin-form-group { margin-bottom: 15px; }
-        .admin-form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50; }
-        .admin-form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; }
-        .admin-btn-container { display: flex; gap: 10px; margin-top: 20px; }
-        .admin-error { color: #ef5350; font-size: 13px; text-align: center; margin-top: 10px; }
-        
-        .detay-edit-section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #4fc3f7; }
-        .edit-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .edit-table th { background: #2980b9; font-size: 11px; }
-        .edit-table td { padding: 4px; }
-        .kalem-ekle-btn { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; margin-top: 10px; font-size: 14px; }
-        .kalem-sil-btn { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 12px; }
-        .kalem-info { font-size: 12px; color: #666; margin-top: 5px; display: block; }
-        
-        .durum-bekliyor { color: #e67e22; font-weight: bold; }
-        .durum-aktarildi { color: #27ae60; font-weight: bold; }
-        .durum-duzenlendi { color: #2980b9; font-weight: bold; }
-        
-        .ayarlar-section { background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px 0; border: 2px solid #8e44ad; }
-        .ayarlar-section h3 { color: #8e44ad; margin-bottom: 20px; font-size: 20px; }
-        .kullanici-card { background: white; padding: 15px; border-radius: 8px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 10px; }
-        .kullanici-card span { font-weight: bold; color: #2c3e50; }
-        .kullanici-card .btn-group { display: flex; gap: 5px; }
-        .kullanici-rol { font-size: 11px; padding: 3px 8px; border-radius: 10px; margin-left: 8px; }
-        .kullanici-rol.admin { background: #8e44ad; color: white; }
-        .kullanici-rol.kullanici { background: #e3f2fd; color: #1565c0; }
-        
-        .sifre-modal-content { width: 450px; }
-        .eski-sifre-group { margin-bottom: 10px; background: #fff3cd; padding: 10px; border-radius: 6px; }
-        .eski-sifre-group label { color: #856404; }
-        
-        .admin-badge { background: #8e44ad; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; margin-left: 10px; }
-        
-        .stok-isim { font-size: 11px; color: #666; }
-        
-        .sync-status { font-size: 12px; margin-left: 10px; }
-        .sync-status.online { color: #27ae60; }
-        .sync-status.offline { color: #e74c3c; }
-
-        .stok-card { 
-            background: white; 
-            padding: 12px 15px; 
-            border-radius: 8px; 
-            margin: 8px 0; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
-            flex-wrap: wrap; 
-            gap: 8px; 
-            border-left: 4px solid #2980b9;
-        }
-        .stok-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .stok-card .stok-kodu { font-weight: bold; color: #2c3e50; min-width: 100px; }
-        .stok-card .stok-bilgi { color: #666; font-size: 13px; flex: 1; min-width: 200px; }
-        .stok-card .stok-grup { background: #e3f2fd; padding: 3px 10px; border-radius: 12px; font-size: 12px; color: #1565c0; }
-        .stok-card .stok-kilo { background: #e8f5e9; padding: 3px 10px; border-radius: 12px; font-size: 12px; color: #2e7d32; font-weight: bold; }
-        .stok-duzenle-section { background: #f8f9fa; padding: 25px; border-radius: 10px; margin: 20px 0; border: 2px solid #27ae60; }
-        .stok-duzenle-section h3 { color: #27ae60; margin-bottom: 20px; font-size: 20px; }
-        .stok-form-row { display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end; }
-        .stok-form-row > div { flex: 1; min-width: 150px; }
-        .stok-arama { margin-bottom: 15px; }
-        .stok-arama input { padding: 10px; border: 2px solid #2980b9; border-radius: 6px; width: 100%; font-size: 14px; }
-        
-        .duzenleme-tarihi { color: #8e44ad; font-weight: bold; font-size: 11px; }
-        
-        .kilitli-bilgi { 
-            background: #ffe0b2; 
-            border: 1px solid #ff9800; 
-            padding: 12px 18px; 
-            border-radius: 8px; 
-            margin: 10px 0; 
-            color: #e65100; 
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .kilitli-bilgi .kilit-icon { font-size: 24px; }
-        
-        .yetkisiz-islem { 
-            background: #ffebee; 
-            border: 2px solid #ef5350; 
-            padding: 15px; 
-            border-radius: 8px; 
-            margin: 10px 0; 
-            color: #c62828; 
-            text-align: center;
-            font-weight: bold;
-        }
+        *{margin:0;padding:0;box-sizing:border-box}
+        body{font-family:'Segoe UI',Arial,sans-serif;background:#0a1628}
+        .login-page{width:100%;height:100vh;background:linear-gradient(135deg,#0a1628 0%,#1a2a4a 50%,#0a1628 100%);display:flex;justify-content:center;align-items:center;position:relative;overflow:hidden}
+        .login-container{background:rgba(255,255,255,0.05);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:50px 40px;width:420px;box-shadow:0 20px 60px rgba(0,0,0,0.5);position:relative;z-index:1}
+        .login-logo{text-align:center;margin-bottom:30px}
+        .login-logo h1{color:#fff;font-size:32px;font-weight:700;letter-spacing:2px}
+        .login-logo h1 span{color:#4fc3f7}
+        .login-logo p{color:#90a4ae;font-size:14px;margin-top:5px;letter-spacing:4px;text-transform:uppercase}
+        .login-logo .sync-badge{background:#4fc3f7;color:#0a1628;font-size:10px;padding:2px 8px;border-radius:20px;display:inline-block;margin-top:8px}
+        .login-form .form-group{margin-bottom:20px}
+        .login-form label{color:#b0bec5;font-size:13px;font-weight:500;display:block;margin-bottom:6px;letter-spacing:1px}
+        .login-form input{width:100%;padding:12px 15px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;color:#fff;font-size:15px;transition:all 0.3s}
+        .login-form input:focus{outline:none;border-color:#4fc3f7;box-shadow:0 0 20px rgba(79,195,247,0.1)}
+        .login-form input::placeholder{color:#546e7a}
+        .login-btn{width:100%;padding:14px;background:linear-gradient(135deg,#4fc3f7,#0288d1);border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.3s;letter-spacing:1px;text-transform:uppercase}
+        .login-btn:hover{transform:translateY(-2px);box-shadow:0 10px 30px rgba(79,195,247,0.3)}
+        .login-error{color:#ef5350;font-size:13px;text-align:center;margin-top:10px;display:none}
+        .main-page{display:none;width:100%;min-height:100vh;background:#f5f5f5;padding:20px}
+        .container{max-width:1600px;margin:0 auto;background:white;padding:30px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}
+        h1{color:#2c3e50;margin-bottom:20px;font-size:28px}
+        h2{color:#2c3e50;margin-bottom:15px}
+        h3{color:#2980b9;margin:15px 0}
+        .header-buttons{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+        .btn{background:#27ae60;color:white;border:none;padding:12px 25px;cursor:pointer;border-radius:6px;font-size:15px;font-weight:500;transition:all 0.3s}
+        .btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+        .btn:disabled{background:#95a5a6;cursor:not-allowed;transform:none;box-shadow:none;opacity:0.7}
+        .btn-secondary{background:#2980b9}
+        .btn-danger{background:#e74c3c}
+        .btn-warning{background:#f39c12}
+        .btn-info{background:#00bcd4;color:white}
+        .btn-purple{background:#8e44ad;color:white}
+        .btn-sm{padding:6px 12px;font-size:13px}
+        .btn-xs{padding:4px 8px;font-size:11px}
+        .form-group{margin:15px 0}
+        label{font-weight:bold;display:block;margin-bottom:5px;color:#333}
+        select,input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;box-sizing:border-box;font-size:14px}
+        select:focus,input:focus{outline:none;border-color:#2980b9;box-shadow:0 0 0 3px rgba(41,128,185,0.1)}
+        table{width:100%;border-collapse:collapse;margin:10px 0;font-size:12px}
+        th,td{border:1px solid #ddd;padding:5px;text-align:center}
+        th{background-color:#2c3e50;color:white;position:sticky;top:0;z-index:10;font-size:11px}
+        th.sortable{cursor:pointer;user-select:none;position:relative;padding-right:22px!important;transition:background-color 0.2s}
+        th.sortable:hover{background-color:#1a5276}
+        th.sortable::after{content:'⇅';position:absolute;right:5px;top:50%;transform:translateY(-50%);font-size:12px;opacity:0.6}
+        th.sortable.asc::after{content:'▲';opacity:1;color:#4fc3f7}
+        th.sortable.desc::after{content:'▼';opacity:1;color:#4fc3f7}
+        th.no-sort{cursor:default}
+        .small-input{width:60px;padding:4px;text-align:center}
+        .plaka-input{width:75px;background:#f0f0f0;padding:4px;text-align:center;font-size:12px}
+        .toplam-input{width:80px;background:#e8f8e8;font-weight:bold;padding:4px;text-align:center;font-size:12px}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:1000}
+        .modal-content{background:white;margin:2% auto;padding:30px;width:95%;max-width:1100px;border-radius:12px;position:relative;max-height:90vh;overflow-y:auto}
+        .close-modal{position:absolute;top:15px;right:20px;font-size:28px;cursor:pointer;color:#999}
+        .close-modal:hover{color:#333}
+        .hidden{display:none}
+        .success{color:green;font-weight:bold}
+        .error{color:red;font-weight:bold}
+        .gecmis-table-container{max-height:600px;overflow-y:auto;border:1px solid #ddd;margin:10px 0;border-radius:6px}
+        .gecmis-table-container tr:hover{background-color:#f0f8ff}
+        .gecmis-table-container tr.kilitli{background-color:#fff3cd}
+        .detay-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;align-items:center}
+        .detay-label{font-weight:bold;color:#2c3e50;min-width:140px}
+        .detay-value{color:#333;flex:1;text-align:right}
+        .pagination{display:flex;gap:5px;justify-content:center;margin:15px 0;flex-wrap:wrap}
+        .pagination button{padding:6px 12px;cursor:pointer;border:1px solid #ddd;background:white;border-radius:4px}
+        .pagination button:hover{background:#f0f0f0}
+        .pagination button.active{background:#2c3e50;color:white;border-color:#2c3e50}
+        .user-info{background:#e8f4f8;padding:15px 20px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px}
+        .user-info span{font-weight:bold;color:#2c3e50;font-size:16px}
+        .logout-btn{background:#e74c3c;color:white;border:none;padding:8px 20px;border-radius:4px;cursor:pointer;font-size:14px;transition:all 0.3s}
+        .logout-btn:hover{background:#c0392b;transform:scale(1.05)}
+        .filtre-satir{display:flex;gap:15px;flex-wrap:wrap;margin-bottom:15px}
+        .filtre-satir>div{flex:1;min-width:150px}
+        .filtre-satir input,.filtre-satir select{padding:8px;border:1px solid #ddd;border-radius:4px}
+        .filtre-satir input[type="date"]{padding:7px 8px;cursor:pointer}
+        .info-note{background:#fff3cd;border:1px solid #ffe69c;padding:15px;border-radius:6px;margin:15px 0;color:#856404}
+        .excel-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;gap:10px;flex-wrap:wrap}
+        .select-info{background:#e3f2fd;padding:8px 15px;border-radius:6px;font-size:14px;color:#1565c0}
+        .action-buttons{margin-top:20px;display:flex;gap:10px;flex-wrap:wrap}
+        .checkbox-col{width:40px}
+        .admin-modal-content{width:400px}
+        .admin-form-group{margin-bottom:15px}
+        .admin-form-group label{display:block;margin-bottom:5px;font-weight:bold;color:#2c3e50}
+        .admin-form-group input{width:100%;padding:10px;border:1px solid #ddd;border-radius:6px;font-size:14px}
+        .admin-btn-container{display:flex;gap:10px;margin-top:20px}
+        .admin-error{color:#ef5350;font-size:13px;text-align:center;margin-top:10px}
+        .detay-edit-section{background:#f8f9fa;padding:20px;border-radius:8px;margin:20px 0;border:2px solid #4fc3f7}
+        .edit-table{width:100%;border-collapse:collapse;margin-top:10px}
+        .edit-table th{background:#2980b9;font-size:11px}
+        .edit-table td{padding:4px}
+        .kalem-ekle-btn{background:#27ae60;color:white;border:none;padding:8px 15px;border-radius:4px;cursor:pointer;margin-top:10px;font-size:14px}
+        .kalem-sil-btn{background:#e74c3c;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-size:12px}
+        .durum-bekliyor{color:#e67e22;font-weight:bold}
+        .durum-aktarildi{color:#27ae60;font-weight:bold}
+        .durum-duzenlendi{color:#2980b9;font-weight:bold}
+        .ayarlar-section{background:#f8f9fa;padding:25px;border-radius:10px;margin:20px 0;border:2px solid #8e44ad}
+        .ayarlar-section h3{color:#8e44ad;margin-bottom:20px;font-size:20px}
+        .kullanici-card{background:white;padding:15px;border-radius:8px;margin:10px 0;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,0.1);flex-wrap:wrap;gap:10px}
+        .kullanici-rol{font-size:11px;padding:3px 8px;border-radius:10px;margin-left:8px}
+        .kullanici-rol.admin{background:#8e44ad;color:white}
+        .kullanici-rol.kullanici{background:#e3f2fd;color:#1565c0}
+        .sifre-modal-content{width:450px}
+        .eski-sifre-group{margin-bottom:10px;background:#fff3cd;padding:10px;border-radius:6px}
+        .eski-sifre-group label{color:#856404}
+        .admin-badge{background:#8e44ad;color:white;padding:3px 10px;border-radius:12px;font-size:11px;margin-left:10px}
+        .sync-status{font-size:12px;margin-left:10px}
+        .sync-status.online{color:#27ae60}
+        .sync-status.offline{color:#e74c3c}
+        .stok-card{background:white;padding:12px 15px;border-radius:8px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 5px rgba(0,0,0,0.1);flex-wrap:wrap;gap:8px;border-left:4px solid #2980b9}
+        .stok-card:hover{box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+        .stok-duzenle-section{background:#f8f9fa;padding:25px;border-radius:10px;margin:20px 0;border:2px solid #27ae60}
+        .stok-duzenle-section h3{color:#27ae60;margin-bottom:20px;font-size:20px}
+        .stok-form-row{display:flex;gap:15px;flex-wrap:wrap;align-items:flex-end}
+        .stok-form-row>div{flex:1;min-width:150px}
+        .stok-arama{margin-bottom:15px}
+        .stok-arama input{padding:10px;border:2px solid #2980b9;border-radius:6px;width:100%;font-size:14px}
+        .duzenleme-tarihi{color:#8e44ad;font-weight:bold;font-size:11px}
+        .kilitli-bilgi{background:#ffe0b2;border:1px solid #ff9800;padding:12px 18px;border-radius:8px;margin:10px 0;color:#e65100;font-weight:bold;display:flex;align-items:center;gap:10px}
+        .kilitli-bilgi .kilit-icon{font-size:24px}
+        .ozet-kutusu{background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);border-radius:12px;padding:20px;margin:15px 0;color:white;box-shadow:0 5px 20px rgba(102,126,234,0.4);border:2px solid rgba(255,255,255,0.2)}
+        .ozet-kutusu h3{color:white;margin:0 0 15px 0;font-size:18px;display:flex;align-items:center;gap:10px}
+        .ozet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-top:10px}
+        .ozet-item{background:rgba(255,255,255,0.15);padding:12px 15px;border-radius:8px;backdrop-filter:blur(10px);display:flex;justify-content:space-between;align-items:center;border:1px solid rgba(255,255,255,0.2)}
+        .ozet-item .ozet-label{font-size:13px;opacity:0.9}
+        .ozet-item .ozet-deger{font-size:18px;font-weight:bold;letter-spacing:1px}
+        .ozet-tarih-input{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+        .ozet-tarih-input input[type="date"]{padding:8px 12px;border-radius:6px;border:2px solid rgba(255,255,255,0.4);background:rgba(255,255,255,0.2);color:white;font-size:14px;width:auto;cursor:pointer}
+        .ozet-tarih-input label{color:white;font-weight:500;margin:0}
+        .ozet-btn{background:rgba(255,255,255,0.25);color:white;border:1px solid rgba(255,255,255,0.4);padding:8px 15px;border-radius:6px;cursor:pointer;font-size:13px;transition:all 0.3s}
+        .ozet-btn:hover{background:rgba(255,255,255,0.4)}
+        .ozet-tum-zaman{background:rgba(255,255,255,0.1);padding:10px 15px;border-radius:6px;margin-top:10px;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+        .ozet-tum-zaman span{font-weight:bold;font-size:15px}
+        .siralama-bilgi{background:#e3f2fd;padding:6px 12px;border-radius:4px;font-size:12px;color:#1565c0;margin-bottom:5px;display:inline-block}
     </style>
 </head>
 <body>
 
 <div class="login-page" id="loginPage">
     <div class="login-container">
-        <div class="login-logo">
-            <h1>❄️ <span>Sac</span>Kesim</h1>
-            <p>Takip Sistemi</p>
-            <span class="sync-badge">🔥 Firebase ile Gerçek Zamanlı Senkron</span>
-        </div>
+        <div class="login-logo"><h1>❄️ <span>Sac</span>Kesim</h1><p>Takip Sistemi</p><span class="sync-badge">🔥 Firebase ile Gerçek Zamanlı Senkron</span></div>
         <form class="login-form" id="loginForm">
-            <div class="form-group">
-                <label>Kullanıcı Adı</label>
-                <input type="text" id="loginUsername" placeholder="Kullanıcı adınızı girin">
-            </div>
-            <div class="form-group">
-                <label>Şifre</label>
-                <input type="password" id="loginPassword" placeholder="Şifrenizi girin">
-            </div>
+            <div class="form-group"><label>Kullanıcı Adı</label><input type="text" id="loginUsername" placeholder="Kullanıcı adınızı girin"></div>
+            <div class="form-group"><label>Şifre</label><input type="password" id="loginPassword" placeholder="Şifrenizi girin"></div>
             <button type="button" class="login-btn" id="loginBtn">GİRİŞ YAP</button>
             <div class="login-error" id="loginError">Kullanıcı adı veya şifre hatalı!</div>
         </form>
@@ -247,16 +158,14 @@
 <div class="main-page" id="mainPage">
     <div class="container">
         <h1>📋 Günlük Sac Kesim Sistemi <span id="syncStatus" class="sync-status">🔄 Bağlanıyor...</span></h1>
-        
         <div class="user-info">
             <span>👤 Hoş geldiniz, <span id="currentUser">-</span> <span id="userRolBadge"></span></span>
-            <div style="display:flex; gap:10px;">
+            <div style="display:flex;gap:10px;">
                 <button class="btn btn-purple" id="stokDuzenleBtn" style="display:none;">📦 Stok Düzenle</button>
                 <button class="btn btn-purple" id="ayarlarBtn">⚙️ Ayarlar</button>
                 <button class="logout-btn" id="logoutBtn">Çıkış Yap</button>
             </div>
         </div>
-        
         <div class="header-buttons">
             <button class="btn" id="yeniGirisBtn">➕ Yeni Giriş</button>
             <button class="btn btn-secondary" id="oncekiGirislerBtn">📂 Önceki Girişler</button>
@@ -264,42 +173,37 @@
 
         <div id="yeniGirisAlan">
             <div class="info-note">⚠️ <strong>Önemli:</strong> Veriler Firebase'de saklanır ve tüm cihazlarda senkronizedir.</div>
-            <div class="form-group">
-                <label>Stok Grubu Seçiniz:</label>
-                <select id="stokGrubu">
-                    <option value="">-- Seçiniz --</option>
-                    <option value="430">430</option>
-                    <option value="DKP">DKP</option>
-                    <option value="GALVANIZ">GALVANİZ</option>
-                    <option value="304">304</option>
-                    <option value="316">316</option>
-                    <option value="201">201</option>
-                    <option value="HRD">HRD (Tümü)</option>
-                </select>
-            </div>
-            <div class="urun-container" id="urunSecim" style="display:none;">
-                <label>Ürün Seçiniz (Ctrl+Click ile çoklu seçim):</label>
-                <select id="urunKodu" multiple size="10" style="height:200px; font-size:13px;"></select>
-            </div>
+            <div class="form-group"><label>Stok Grubu Seçiniz:</label><select id="stokGrubu"><option value="">-- Seçiniz --</option><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option><option value="HRD">HRD (Tümü)</option></select></div>
+            <div class="urun-container" id="urunSecim" style="display:none;"><label>Ürün Seçiniz (Ctrl+Click ile çoklu seçim):</label><select id="urunKodu" multiple size="10" style="height:200px;font-size:13px;"></select></div>
             <div id="tabloAlan" style="display:none;"></div>
-            <div class="action-buttons">
-                <button class="btn" id="kaydetBtn">💾 Kaydet</button>
-                <button class="btn btn-secondary" id="kayitSonrasiGecmisBtn">📂 Kaydet ve Önceki Girişlere Git</button>
-            </div>
+            <div class="action-buttons"><button class="btn" id="kaydetBtn">💾 Kaydet</button><button class="btn btn-secondary" id="kayitSonrasiGecmisBtn">📂 Kaydet ve Önceki Girişlere Git</button></div>
             <div id="mesaj" style="margin-top:15px;"></div>
         </div>
 
         <div id="oncekiGirislerAlan" class="hidden">
             <h2>📂 Önceki Girişler</h2>
             <div id="yetkiBilgiAlani"></div>
+            <div class="ozet-kutusu" id="ozetKutusu">
+                <h3><span class="ozet-icon">📊</span> Günlük Özet Raporu</h3>
+                <div class="ozet-tarih-input"><label for="ozetTarih">📅 Tarih Seçin:</label><input type="date" id="ozetTarih" onchange="ozetHesapla()"><button class="ozet-btn" onclick="ozetBugun()">📌 Bugün</button><button class="ozet-btn" onclick="ozetTumZaman()">📈 Tüm Zamanlar</button></div>
+                <div id="ozetIcerik"><div class="ozet-grid"><div class="ozet-item"><span class="ozet-label">📦 Toplam Miktar</span><span class="ozet-deger" id="ozetToplamMiktar">-</span></div><div class="ozet-item"><span class="ozet-label">⚖️ Toplam Kg</span><span class="ozet-deger" id="ozetToplamKg">-</span></div><div class="ozet-item"><span class="ozet-label">📋 Evrak Sayısı</span><span class="ozet-deger" id="ozetEvrakSayisi">-</span></div><div class="ozet-item"><span class="ozet-label">🔢 Stok Çeşidi</span><span class="ozet-deger" id="ozetStokCesidi">-</span></div></div><div class="ozet-tum-zaman" id="ozetTumZamanDiv" style="display:none;"><span>📅 <strong id="ozetTarihAralik"></strong></span><span>📦 Toplam Miktar: <strong id="ozetTumMiktar">-</strong></span><span>⚖️ Toplam Kg: <strong id="ozetTumKg">-</strong></span><span>📋 Toplam Evrak: <strong id="ozetTumEvrak">-</strong></span></div></div>
+            </div>
             <div class="filtre-satir">
+                <div><label>📅 Başlangıç Tarihi</label><input type="date" id="filtre_tarih_baslangic"></div>
+                <div><label>📅 Bitiş Tarihi</label><input type="date" id="filtre_tarih_bitis"></div>
                 <div><label>Seri No</label><input type="text" id="filtre_seri" placeholder="Filtrele..."></div>
                 <div><label>Sıra No</label><input type="text" id="filtre_sira" placeholder="Filtrele..."></div>
+            </div>
+            <div class="filtre-satir">
                 <div><label>Grup</label><select id="filtre_grup"><option value="">-- Tümü --</option><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option><option value="HRD">HRD</option></select></div>
                 <div><label>Durum</label><select id="filtre_durum"><option value="">-- Tümü --</option><option value="bekliyor">Bekliyor</option><option value="aktarildi">Aktarıldı</option><option value="duzenlendi">Düzenlendi</option></select></div>
-                <div style="display:flex; align-items:flex-end; gap:10px;">
-                    <button class="btn btn-secondary" id="filtreUygulaBtn">🔍 Filtre</button>
-                    <button class="btn btn-danger" id="filtreTemizleBtn">🗑️ Temizle</button>
+                <div><label>Oluşturan</label><select id="filtre_olusturan"><option value="">-- Tümü --</option></select></div>
+                <div style="display:flex;align-items:flex-end;gap:5px;flex-wrap:wrap;">
+                    <button class="btn btn-secondary btn-sm" id="filtreUygulaBtn">🔍 Filtre</button>
+                    <button class="btn btn-danger btn-sm" id="filtreTemizleBtn">🗑️ Temizle</button>
+                    <button class="btn btn-info btn-sm" id="filtreBugunBtn">📅 Bugün</button>
+                    <button class="btn btn-info btn-sm" id="filtreBuHaftaBtn">📅 Bu Hafta</button>
+                    <button class="btn btn-info btn-sm" id="filtreBuAyBtn">📅 Bu Ay</button>
                 </div>
             </div>
             <div class="excel-actions">
@@ -310,1759 +214,189 @@
                     <button class="btn btn-secondary" id="secimiTemizleBtn">⬜ Seçimi Temizle</button>
                 </div>
             </div>
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                <span id="kayitSayisi" style="padding:8px; background:#e8f4f8; border-radius:4px;"></span>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:10px;">
+                <span id="kayitSayisi" style="padding:8px;background:#e8f4f8;border-radius:4px;"></span>
+                <span id="siralamaBilgi" class="siralama-bilgi" style="display:none;"></span>
             </div>
             <div class="gecmis-table-container" id="gecmisTablosu"></div>
             <div class="pagination" id="paginationContainer"></div>
             <div id="gecmisMesaj"></div>
-            <div style="margin-top:20px;">
-                <button class="btn btn-secondary" id="yeniKayitDonBtn">➕ Yeni Kayıt Ekranına Dön</button>
-            </div>
+            <div style="margin-top:20px;"><button class="btn btn-secondary" id="yeniKayitDonBtn">➕ Yeni Kayıt Ekranına Dön</button></div>
         </div>
 
         <div id="stokDuzenleAlan" class="hidden">
-            <h2>📦 Stok Düzenleme <span class="admin-badge">Sadece Muhammed</span></h2>
-            
-            <div class="stok-duzenle-section">
-                <h3>➕ Yeni Stok Ekle</h3>
-                <div class="stok-form-row">
-                    <div>
-                        <label>Grup</label>
-                        <select id="yeniStokGrup">
-                            <option value="430">430</option>
-                            <option value="DKP">DKP</option>
-                            <option value="GALVANIZ">GALVANİZ</option>
-                            <option value="304">304</option>
-                            <option value="316">316</option>
-                            <option value="201">201</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Stok Kodu</label>
-                        <input type="text" id="yeniStokKodu" placeholder="Örn: HC1.0100">
-                    </div>
-                    <div>
-                        <label>Stok İsmi</label>
-                        <input type="text" id="yeniStokIsmi" placeholder="Örn: 430 SB 0,5X3000X1500...">
-                    </div>
-                    <div>
-                        <label>1 Plaka (kg)</label>
-                        <input type="text" id="yeniStokPlaka" placeholder="Örn: 17.7746">
-                    </div>
-                    <div>
-                        <button class="btn btn-success" id="stokEkleBtn">➕ Stok Ekle</button>
-                    </div>
-                </div>
-                <div id="stokEkleMesaj" style="margin-top:10px;"></div>
-            </div>
-
-            <div class="stok-duzenle-section">
-                <h3>📋 Mevcut Stoklar</h3>
-                <div class="stok-arama">
-                    <input type="text" id="stokArama" placeholder="🔍 Stok kodu veya isim ile ara...">
-                </div>
-                <div id="stokListesi" style="max-height: 600px; overflow-y: auto;"></div>
-            </div>
-
-            <div style="margin-top:20px;">
-                <button class="btn btn-secondary" id="stokDuzenleCikBtn">↩️ Ana Sayfaya Dön</button>
-            </div>
+            <h2>📦 Stok Düzenleme <span class="admin-badge">Sadece Muhammed & Burak</span></h2>
+            <div class="stok-duzenle-section"><h3>➕ Yeni Stok Ekle</h3><div class="stok-form-row"><div><label>Grup</label><select id="yeniStokGrup"><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option></select></div><div><label>Stok Kodu</label><input type="text" id="yeniStokKodu" placeholder="Örn: HC1.0100"></div><div><label>Stok İsmi</label><input type="text" id="yeniStokIsmi" placeholder="Örn: 430 SB 0,5X3000X1500..."></div><div><label>1 Plaka (kg)</label><input type="text" id="yeniStokPlaka" placeholder="Örn: 17.7746"></div><div><button class="btn btn-success" id="stokEkleBtn">➕ Stok Ekle</button></div></div><div id="stokEkleMesaj" style="margin-top:10px;"></div></div>
+            <div class="stok-duzenle-section"><h3>📋 Mevcut Stoklar</h3><div class="stok-arama"><input type="text" id="stokArama" placeholder="🔍 Stok kodu veya isim ile ara..."></div><div id="stokListesi" style="max-height:600px;overflow-y:auto;"></div></div>
+            <div style="margin-top:20px;"><button class="btn btn-secondary" id="stokDuzenleCikBtn">↩️ Ana Sayfaya Dön</button></div>
         </div>
 
         <div id="ayarlarAlan" class="hidden">
             <h2>⚙️ Ayarlar <span class="admin-badge">Admin Yetkisi</span></h2>
-            
-            <div class="ayarlar-section">
-                <h3>👥 Kullanıcı Yönetimi</h3>
-                <div class="form-group" style="display:flex; gap:15px; align-items:flex-end; flex-wrap:wrap;">
-                    <div style="flex:1; min-width:200px;">
-                        <label>Yeni Kullanıcı Adı</label>
-                        <input type="text" id="yeniKullaniciAdi" placeholder="Kullanıcı adı">
-                    </div>
-                    <div style="flex:1; min-width:200px;">
-                        <label>Şifre</label>
-                        <input type="text" id="yeniKullaniciSifre" placeholder="Şifre">
-                    </div>
-                    <div>
-                        <button class="btn btn-success" id="kullaniciEkleBtn">➕ Ekle</button>
-                    </div>
-                </div>
-                <div id="kullaniciListesi" style="margin-top:15px;"></div>
-                <div id="kullaniciMesaj" style="margin-top:10px;"></div>
-            </div>
-
-            <div class="ayarlar-section">
-                <h3>🗑️ Silinen Evraklar Arşivi</h3>
-                <div class="gecmis-table-container" id="silinenEvraklarTablosu" style="max-height:400px;">
-                    <p style="padding:20px; text-align:center; color:#999;">Silinen evrak bulunmuyor.</p>
-                </div>
-                <div style="margin-top:10px; display:flex; gap:10px;">
-                    <button class="btn btn-danger btn-sm" id="silinenleriTemizleBtn">🗑️ Tüm Silinenleri Kalıcı Sil</button>
-                    <button class="btn btn-info btn-sm" id="silineniGeriYukleBtn">↩️ Seçileni Geri Yükle</button>
-                </div>
-                <div id="silinenMesaj" style="margin-top:10px;"></div>
-            </div>
-
-            <div style="margin-top:20px;">
-                <button class="btn btn-secondary" id="ayarlardanCikBtn">↩️ Ana Sayfaya Dön</button>
-            </div>
+            <div class="ayarlar-section"><h3>👥 Kullanıcı Yönetimi</h3><div class="form-group" style="display:flex;gap:15px;align-items:flex-end;flex-wrap:wrap;"><div style="flex:1;min-width:200px;"><label>Yeni Kullanıcı Adı</label><input type="text" id="yeniKullaniciAdi" placeholder="Kullanıcı adı"></div><div style="flex:1;min-width:200px;"><label>Şifre</label><input type="text" id="yeniKullaniciSifre" placeholder="Şifre"></div><div><button class="btn btn-success" id="kullaniciEkleBtn">➕ Ekle</button></div></div><div id="kullaniciListesi" style="margin-top:15px;"></div><div id="kullaniciMesaj" style="margin-top:10px;"></div></div>
+            <div class="ayarlar-section"><h3>🗑️ Silinen Evraklar Arşivi</h3><div class="gecmis-table-container" id="silinenEvraklarTablosu" style="max-height:400px;"><p style="padding:20px;text-align:center;color:#999;">Silinen evrak bulunmuyor.</p></div><div style="margin-top:10px;display:flex;gap:10px;"><button class="btn btn-danger btn-sm" id="silinenleriTemizleBtn">🗑️ Tüm Silinenleri Kalıcı Sil</button><button class="btn btn-info btn-sm" id="silineniGeriYukleBtn">↩️ Seçileni Geri Yükle</button></div><div id="silinenMesaj" style="margin-top:10px;"></div></div>
+            <div style="margin-top:20px;"><button class="btn btn-secondary" id="ayarlardanCikBtn">↩️ Ana Sayfaya Dön</button></div>
         </div>
     </div>
 </div>
 
-<!-- DETAY MODAL -->
-<div id="detayModal" class="modal">
-    <div class="modal-content">
-        <span class="close-modal" onclick="kapatModal('detayModal')">&times;</span>
-        <h2>📄 Evrak Detayı ve Düzenleme</h2>
-        <div id="detayKilitBilgi"></div>
-        <div id="detayIcerik"></div>
-        <div id="detayDuzenlemeAlani" style="display:none;"></div>
-        <div class="action-buttons">
-            <button class="btn btn-info" id="detayDuzenleBtn">🔓 Düzenle</button>
-            <button class="btn btn-success hidden" id="detayKaydetBtn">💾 Değişiklikleri Kaydet</button>
-            <button class="btn btn-danger" id="detaySilBtn">🗑️ Evrakı Sil</button>
-            <button class="btn btn-secondary" onclick="kapatModal('detayModal')">Kapat</button>
-        </div>
-    </div>
-</div>
-
-<!-- STOK DÜZENLEME MODAL -->
-<div id="stokDuzenleModal" class="modal">
-    <div class="modal-content" style="max-width: 600px;">
-        <span class="close-modal" onclick="kapatModal('stokDuzenleModal')">&times;</span>
-        <h2>✏️ Stok Düzenle</h2>
-        <div class="admin-form-group">
-            <label>Stok Kodu</label>
-            <input type="text" id="duzenleStokKodu" readonly style="background:#f0f0f0;">
-        </div>
-        <div class="admin-form-group">
-            <label>Grup</label>
-            <select id="duzenleStokGrup">
-                <option value="430">430</option>
-                <option value="DKP">DKP</option>
-                <option value="GALVANIZ">GALVANİZ</option>
-                <option value="304">304</option>
-                <option value="316">316</option>
-                <option value="201">201</option>
-            </select>
-        </div>
-        <div class="admin-form-group">
-            <label>Stok İsmi</label>
-            <input type="text" id="duzenleStokIsmi">
-        </div>
-        <div class="admin-form-group">
-            <label>1 Plaka (kg)</label>
-            <input type="text" id="duzenleStokPlaka">
-        </div>
-        <div class="admin-error" id="stokDuzenleError"></div>
-        <div class="admin-btn-container">
-            <button class="btn btn-success" id="stokGuncelleBtn">💾 Güncelle</button>
-            <button class="btn btn-secondary" onclick="kapatModal('stokDuzenleModal')">❌ İptal</button>
-        </div>
-    </div>
-</div>
-
-<!-- ADMIN YETKİ MODAL -->
-<div id="adminModal" class="modal">
-    <div class="modal-content admin-modal-content">
-        <span class="close-modal" onclick="kapatModal('adminModal')">&times;</span>
-        <h2>🔐 Admin Yetkilendirmesi</h2>
-        <p style="margin-bottom:20px; color:#666;" id="adminModalMesaj">Bu işlem için admin yetkisi gereklidir.</p>
-        <div class="admin-form-group"><label>Admin Kullanıcı Adı</label><input type="text" id="adminUsername" placeholder="Admin kullanıcı adı"></div>
-        <div class="admin-form-group"><label>Admin Şifre</label><input type="password" id="adminPassword" placeholder="Admin şifresi"></div>
-        <div class="admin-error" id="adminError"></div>
-        <div class="admin-btn-container">
-            <button class="btn btn-danger" id="adminOnayBtn">✅ Onayla</button>
-            <button class="btn btn-secondary" onclick="kapatModal('adminModal')">❌ İptal</button>
-        </div>
-    </div>
-</div>
-
-<!-- KULLANICI DÜZENLEME MODAL -->
-<div id="kullaniciDuzenleModal" class="modal">
-    <div class="modal-content sifre-modal-content">
-        <span class="close-modal" onclick="kapatModal('kullaniciDuzenleModal')">&times;</span>
-        <h2>✏️ Kullanıcı Düzenle: <span id="duzenlenenKullaniciAdi"></span></h2>
-        <div class="eski-sifre-group">
-            <div class="admin-form-group">
-                <label>Mevcut Şifrenizi Girin (Değişiklik için zorunlu):</label>
-                <input type="password" id="eskiSifreKontrol" placeholder="Mevcut şifre">
-            </div>
-        </div>
-        <div class="admin-form-group">
-            <label>Yeni Kullanıcı Adı (Değiştirmek istemiyorsanız boş bırakın):</label>
-            <input type="text" id="yeniKullaniciAdiInput" placeholder="Yeni kullanıcı adı">
-        </div>
-        <div class="admin-form-group">
-            <label>Yeni Şifre (Değiştirmek istemiyorsanız boş bırakın):</label>
-            <input type="text" id="yeniSifreInput" placeholder="Yeni şifre">
-        </div>
-        <div class="admin-error" id="kullaniciDuzenleError"></div>
-        <div class="admin-btn-container">
-            <button class="btn btn-success" id="kullaniciGuncelleBtn">💾 Güncelle</button>
-            <button class="btn btn-secondary" onclick="kapatModal('kullaniciDuzenleModal')">❌ İptal</button>
-        </div>
-    </div>
-</div>
+<div id="detayModal" class="modal"><div class="modal-content"><span class="close-modal" onclick="kapatModal('detayModal')">&times;</span><h2>📄 Evrak Detayı ve Düzenleme</h2><div id="detayKilitBilgi"></div><div id="detayIcerik"></div><div id="detayDuzenlemeAlani" style="display:none;"></div><div class="action-buttons"><button class="btn btn-info" id="detayDuzenleBtn">🔓 Düzenle</button><button class="btn btn-success hidden" id="detayKaydetBtn">💾 Değişiklikleri Kaydet</button><button class="btn btn-danger" id="detaySilBtn">🗑️ Evrakı Sil</button><button class="btn btn-secondary" onclick="kapatModal('detayModal')">Kapat</button></div></div></div>
+<div id="stokDuzenleModal" class="modal"><div class="modal-content" style="max-width:600px;"><span class="close-modal" onclick="kapatModal('stokDuzenleModal')">&times;</span><h2>✏️ Stok Düzenle</h2><div class="admin-form-group"><label>Stok Kodu</label><input type="text" id="duzenleStokKodu" readonly style="background:#f0f0f0;"></div><div class="admin-form-group"><label>Grup</label><select id="duzenleStokGrup"><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option></select></div><div class="admin-form-group"><label>Stok İsmi</label><input type="text" id="duzenleStokIsmi"></div><div class="admin-form-group"><label>1 Plaka (kg)</label><input type="text" id="duzenleStokPlaka"></div><div class="admin-error" id="stokDuzenleError"></div><div class="admin-btn-container"><button class="btn btn-success" id="stokGuncelleBtn">💾 Güncelle</button><button class="btn btn-secondary" onclick="kapatModal('stokDuzenleModal')">❌ İptal</button></div></div></div>
+<div id="adminModal" class="modal"><div class="modal-content admin-modal-content"><span class="close-modal" onclick="kapatModal('adminModal')">&times;</span><h2>🔐 Admin Yetkilendirmesi</h2><p style="margin-bottom:20px;color:#666;" id="adminModalMesaj">Bu işlem için admin yetkisi gereklidir.</p><div class="admin-form-group"><label>Admin Kullanıcı Adı</label><input type="text" id="adminUsername" placeholder="Admin kullanıcı adı"></div><div class="admin-form-group"><label>Admin Şifre</label><input type="password" id="adminPassword" placeholder="Admin şifresi"></div><div class="admin-error" id="adminError"></div><div class="admin-btn-container"><button class="btn btn-danger" id="adminOnayBtn">✅ Onayla</button><button class="btn btn-secondary" onclick="kapatModal('adminModal')">❌ İptal</button></div></div></div>
+<div id="kullaniciDuzenleModal" class="modal"><div class="modal-content sifre-modal-content"><span class="close-modal" onclick="kapatModal('kullaniciDuzenleModal')">&times;</span><h2>✏️ Kullanıcı Düzenle: <span id="duzenlenenKullaniciAdi"></span></h2><div class="eski-sifre-group"><div class="admin-form-group"><label>Mevcut Şifrenizi Girin (Değişiklik için zorunlu):</label><input type="password" id="eskiSifreKontrol" placeholder="Mevcut şifre"></div></div><div class="admin-form-group"><label>Yeni Kullanıcı Adı</label><input type="text" id="yeniKullaniciAdiInput" placeholder="Yeni kullanıcı adı"></div><div class="admin-form-group"><label>Yeni Şifre</label><input type="text" id="yeniSifreInput" placeholder="Yeni şifre"></div><div class="admin-error" id="kullaniciDuzenleError"></div><div class="admin-btn-container"><button class="btn btn-success" id="kullaniciGuncelleBtn">💾 Güncelle</button><button class="btn btn-secondary" onclick="kapatModal('kullaniciDuzenleModal')">❌ İptal</button></div></div></div>
 
 <script>
-    // ============ FIREBASE KONFIGÜRASYONU ============
-    const firebaseConfig = {
-        apiKey: "AIzaSyCij8aRRYlOzq6ffoqmQRxCC4ODebN5nu0",
-        authDomain: "sackesim-5e216.firebaseapp.com",
-        databaseURL: "https://sackesim-5e216-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "sackesim-5e216",
-        storageBucket: "sackesim-5e216.firebasestorage.app",
-        messagingSenderId: "645879486424",
-        appId: "1:645879486424:web:b395ad7c40fdfa045604ad"
-    };
+// ============ FIREBASE ============
+const firebaseConfig={apiKey:"AIzaSyCij8aRRYlOzq6ffoqmQRxCC4ODebN5nu0",authDomain:"sackesim-5e216.firebaseapp.com",databaseURL:"https://sackesim-5e216-default-rtdb.europe-west1.firebasedatabase.app",projectId:"sackesim-5e216",storageBucket:"sackesim-5e216.firebasestorage.app",messagingSenderId:"645879486424",appId:"1:645879486424:web:b395ad7c40fdfa045604ad"};
+firebase.initializeApp(firebaseConfig);const database=firebase.database();
 
-    // Firebase Başlat
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    
-    // ============ SİSTEM DEĞİŞKENLERİ ============
-    // Kullanıcılar: SAC1, SAC2, SAC3, SAC4 (standart kullanıcı) ve Muhammed (admin)
-    let kullanicilar = JSON.parse(localStorage.getItem("kullanicilar")) || { 
-        "SAC1": "sac1sac", 
-        "SAC2": "2sac2",
-        "SAC3": "sac3sac",
-        "SAC4": "4sac4"
-    };
-    if (!kullanicilar["Muhammed"]) {
-        kullanicilar["Muhammed"] = "muhammed123";
-    }
-    
-    // Admin kullanıcı listesi (bu kullanıcılar her şeyi yapabilir)
-    const adminKullanicilar = ["Muhammed"];
-    
-    const adminBilgileri = { "admin": "sena2003" };
-    const SERI_NO = "SD";
-    let aktifKullanici = null;
-    let bekleyenIslem = null;
-    let bekleyenIdx = null;
-    let detayEditingIdx = null;
-    let ayarlarAdminOnaylandi = false;
-    let duzenlenenKullanici = null;
-    let seciliSilinenIdx = null;
-    let duzenlenenStokKodu = null;
-    
-    let silinenEvraklarArsivi = JSON.parse(localStorage.getItem("silinenEvraklarArsivi")) || [];
-    let siraNo = localStorage.getItem("siraNo") ? parseInt(localStorage.getItem("siraNo")) : 0;
-    let silinenSiralar = localStorage.getItem("silinenSiralar") ? JSON.parse(localStorage.getItem("silinenSiralar")) : [];
-    let aktarilanEvraklar = localStorage.getItem("aktarilanEvraklar") ? JSON.parse(localStorage.getItem("aktarilanEvraklar")) : [];
-    let gecmisVeriler = JSON.parse(localStorage.getItem("gecmisVeriler")) || [];
-    let seciliEvrakIndisleri = new Set();
-    let currentPage = 1;
-    let pageSize = 20;
-    let filteredVeriler = [];
-    let isOnline = false;
+// ============ DEĞİŞKENLER ============
+let kullanicilar={},gecmisVeriler=[],siraNo=0,silinenSiralar=[],aktarilanEvraklar=[],silinenEvraklarArsivi=[],stokBilgileri={},plakaWeights={},stokGruplari={};
+const adminKullanicilar=["Muhammed","Burak"],adminBilgileri={admin:"sena2003"},SERI_NO="SD";
+let aktifKullanici=null,bekleyenIslem=null,detayEditingIdx=null,ayarlarAdminOnaylandi=false,duzenlenenKullanici=null,seciliSilinenIdx=null,duzenlenenStokKodu=null;
+let seciliEvrakIndisleri=new Set(),currentPage=1,pageSize=20,filteredVeriler=[],isOnline=false,currentSortColumn='siraNo',currentSortDirection='desc',urunler={},ozetModu="tum",seciliOzetTarih="";
 
-    // ============ STOK VERİLERİ ============
-    let stokBilgileri = JSON.parse(localStorage.getItem("stokBilgileri")) || {
-        "HC1.0001": "430 SB 0,5X3000X1500 PASLANMAZ SAC PLAKA",
-        "HC1.0002": "430 SB 0,5X2500X1250 PASLANMAZ SAC PLAKA",
-        "HC1.0003": "430 SB 0,5X2000X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0004": "430 SB 0,5X1560X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0005": "430 SB 0,5X1980X780 PASLANMAZ SAC PLAKA",
-        "HC1.0006": "430 SB 0,5X1750X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0015": "430 SB 0,5X1680X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0018": "430 SB 0,5X1590X850 PASLANMAZ SAC PLAKA",
-        "HC1.0019": "430 SB 0,5X1515X595 PASLANMAZ SAC PLAKA (VTS 610 CR KAPI İÇ SACI)",
-        "HC1.0020": "430 SB 0,5X1750X850 PASLANMAZ SAC PLAKA",
-        "HC1.0021": "430 SB 0,8X2050X900 PASLANMAZ SAC PLAKA",
-        "HC1.0022": "430 SB 0,8X1600X1030 PASLANMAZ SAC PLAKA",
-        "HC1.0024": "430 SB 0,8X3000X1500 PASLANMAZ SAC PLAKA",
-        "HC1.0025": "430 SB 0,8X1750X800 PASLANMAZ SAC PLAKA",
-        "HC1.0027": "430 SB 1X3000X1500 PASLANMAZ SAC PLAKA",
-        "HC1.0045": "430 SB 2X2000X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0047": "430 2B 0,8X2000X1000 MM. PASLANMAZ SAC PLAKA",
-        "HC1.0050": "430 2B 0,80X1500X3000 PASLANMAZ SAC",
-        "HC1.0052": "430 SB 0,8X2000X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0058": "430 SB 0,8X1250X2500 PASLANMAZ SAC PLAKA",
-        "HC1.0062": "430 SB 0,5X535X425 PASLANMAZ SAC PLAKA (TEZGAH TİP KAPI İÇ SACI)",
-        "HC1.0064": "430 SB 1X2000X1000 PASLANMAZ SAC PLAKA",
-        "HC1.0073": "430 SB 0,6X1750X850 PASLANMAZ SAC PLAKA",
-        "HC1.0074": "430 SB 0,6X2100X950 PASLANMAZ SAC PLAKA",
-        "HC1.0075": "430 SB 1X1660X850 PASLANMAZ SAC PLAKA",
-        "HC1.0076": "430 SB 1X2120X850 PASLANMAZ SAC PLAKA",
-        "HC1.0077": "430 SB 1X2660X850 PASLANMAZ SAC PLAKA",
-        "HD1.0001": "DKP 0,8X1500X3000 MM SAC",
-        "HD1.0002": "DKP 1,5X1250X2500 MM SAC",
-        "HD1.0003": "DKP 0,8X1250X2500 MM SAC",
-        "HD1.0004": "DKP 1,5X1500X3000 MM SAC",
-        "HG1.0002": "GALVANİZ SAC 1,5X2000X1000 PLAKA SAC",
-        "HG1.0004": "GALVANİZ SAC 1,5X3000X1500 PLAKA SAC",
-        "HG1.0007": "GALVANİZ 0,5X800X3000 PLAKA SAC",
-        "HG1.0008": "GALVANİZ 0,5X800X2800 PLAKA SAC",
-        "HG1.0010": "GALVANİZ 0,5X800X2080 PLAKA SAC",
-        "HG1.0011": "GALVANİZ 0,5X800X1700 PLAKA SAC",
-        "HG1.0012": "GALVANİZ 0,5X1500X3000 PLAKA SAC",
-        "HG1.0013": "GALVANİZ 3X2000X1000 PLAKA SAC",
-        "HG1.0016": "GALVANİZ 0,5X1250X2500 PLAKA SAC",
-        "HG1.0018": "GALVANİZ SAC 1,5X2500X1250 PLAKA SAC",
-        "HG1.0019": "GALVANİZ BOYALI SAC 0,5X1250X2000 PLAKA SAC RAL 9002 (BEYAZ)",
-        "HG1.0020": "GALVANİZ 0,5X2000X1000 PLAKA SAC",
-        "HG1.0021": "GALVANİZ BOYALI SAC 0,5X1250X2300 PLAKA SAC RAL 9002 (BEYAZ)",
-        "HN1.0002": "304 2B 0,8x3000x1500 PASLANMAZ SAC",
-        "HN1.0006": "304 SB 0,5X1980X780 PASLANMAZ SAC PLAKA",
-        "HN1.0011": "304 SB 1X3000X1500 PASLANMAZ SAC PLAKA",
-        "HN1.0012": "304 SB 0,8X3000X1500 PASLANMAZ SAC PLAKA",
-        "HN1.0013": "304 SB 0,5X1590X850 PASLANMAZ SAC PLAKA",
-        "HN1.0014": "304 SB 0,5X1750X850 PASLANMAZ SAC PLAKA",
-        "HN1.0015": "304 SB 0,5X2000X1000 PASLANMAZ SAC PLAKA",
-        "HN1.0016": "304 SB 0,5X1560X1000 PASLANMAZ SAC PLAKA",
-        "HN1.0018": "304 SB 0,5X3000X1500 PASLANMAZ SAC PLAKA",
-        "HN1.0019": "304 SB 0,8X1030X1600 PASLANMAZ SAC PLAKA",
-        "HN1.0020": "304 SB 0,5X1000X1680 PASLANMAZ SAC PLAKA",
-        "HN1.0021": "304 SB 0,8X2050X900 PASLANMAZ SAC PLAKA",
-        "HN1.0022": "304 SB 0,8X1750X800 PASLANMAZ SAC PLAKA",
-        "HN1.0025": "304 SB 0,8X2000X1000 PASLANMAZ SAC PLAKA",
-        "HN1.0026": "304 SB 0,8X2500X1250 PASLANMAZ SAC PLAKA",
-        "HN1.0028": "304 SB 1X2000X1000 PASLANMAZ SAC",
-        "HN1.0029": "304 SB 0,5X1515X595 MM. PASLANMAZ SAC PLAKA (610 KAPI İÇ SACI)",
-        "HN1.0032": "304 SB 0,5X1250X2500 PASLANMAZ SAC PLAKA",
-        "HN1.0035": "304 SB 1X2660X850 PASLANMAZ SAC PLAKA",
-        "HN1.0036": "304 SB 0,6X1750X850 PASLANMAZ SAC PLAKA",
-        "HN1.0037": "304 SB 0,6X2100X950 PASLANMAZ SAC PLAKA",
-        "HN1.0038": "304 SB 1X1660X850 PASLANMAZ SAC",
-        "HN1.0040": "304 SB 1X2120X850 PASLANMAZ SAC",
-        "HN1.0043": "304 SB 0,5X535X425 PASLANMAZ SAC PLAKA (TEZGAH TİP KAPI İÇ SACI)",
-        "HN1.0048": "304 SB 2x1000x2000 PASLANMAZ SAC PLAKA",
-        "HX1.0001": "316 SB 0,5X3000X1500 PASLANMAZ SAC PLAKA",
-        "HX1.0002": "316 SB 0,5X1600X1000 PASLANMAZ SAC PLAKA",
-        "HX1.0044": "316 SB 1X3000X1500 PASLANMAZ SAC PLAKA",
-        "HX1.0045": "316 SB 0,80X1250X2500 PASLANMAZ SAC",
-        "HX1.0043": "201 SB 0,8X3000X1500 PASLANMAZ SAC PLAKA"
-    };
+// ============ YARDIMCI FONKSİYONLAR ============
+function parseNumber(v){if(typeof v==='number')return v;if(!v)return 0;let n=parseFloat(v.toString().replace(',','.'));return isNaN(n)?0:n;}
+function formatNumber(n){if(typeof n==='string')n=parseNumber(n);return n.toFixed(2);}
+function formatNumberDisplay(n){if(typeof n==='string')n=parseNumber(n);return n.toFixed(2).replace('.',',');}
+function encodeFirebaseKey(k){return String(k).replace(/\./g,'_DOT_').replace(/#/g,'_HASH_').replace(/\$/g,'_DOLLAR_').replace(/\//g,'_SLASH_').replace(/\[/g,'_LBRACKET_').replace(/\]/g,'_RBRACKET_');}
+function decodeFirebaseKey(k){return String(k).replace(/_DOT_/g,'.').replace(/_HASH_/g,'#').replace(/_DOLLAR_/g,'$').replace(/_SLASH_/g,'/').replace(/_LBRACKET_/g,'[').replace(/_RBRACKET_/g,']');}
+function encodeObjectForFirebase(obj){if(!obj||typeof obj!=='object')return obj;if(Array.isArray(obj))return obj.map(encodeObjectForFirebase);var y={};Object.keys(obj).forEach(function(k){var v=obj[k];y[encodeFirebaseKey(k)]=(v!==null&&typeof v==='object'&&!Array.isArray(v))?encodeObjectForFirebase(v):v;});return y;}
+function decodeObjectFromFirebase(obj){if(!obj||typeof obj!=='object')return obj;if(Array.isArray(obj))return obj.map(decodeObjectFromFirebase);var y={};Object.keys(obj).forEach(function(k){var v=obj[k];y[decodeFirebaseKey(k)]=(v!==null&&typeof v==='object'&&!Array.isArray(v))?decodeObjectFromFirebase(v):v;});return y;}
+function isAdmin(){return adminKullanicilar.includes(aktifKullanici);}
+function isStandartKullanici(){return aktifKullanici&&!isAdmin();}
+function evrakAktarildiMi(e){return aktarilanEvraklar.includes(e["Sıra No"]);}
+function evrakKilitliMi(e){return evrakAktarildiMi(e);}
+function kullaniciEvragiDuzenleyebilirMi(e){if(isAdmin())return true;if(isStandartKullanici()&&evrakKilitliMi(e))return false;return true;}
+function kullaniciEvragiSilebilirMi(e){if(isAdmin())return true;if(isStandartKullanici()&&evrakKilitliMi(e))return false;return true;}
+function getSiraNo(){let s=siraNo+1;while(silinenSiralar.includes(s))s++;return s;}
+function siranoArtir(){siraNo++;syncData();}
+function getDurum(e){let s=e["Sıra No"],d=e["Duzenlendi"]||false,a=aktarilanEvraklar.includes(s),dy=e["Duzenleyen"]||"";if(d&&a)return"Excel'e Aktarıldı (Düzenlendi"+(dy?' - '+dy:'')+")";if(a)return"Excel'e Aktarıldı";if(d)return"Bekliyor (Düzenlendi"+(dy?' - '+dy:'')+")";return"Bekliyor";}
+function getDurumClass(d){if(d.includes("Aktarıldı"))return"durum-aktarildi";if(d.includes("Düzenlendi"))return"durum-duzenlendi";return"durum-bekliyor";}
+function getStokIsmi(k){return stokBilgileri[k]||"";}
+function getPlakaWeight(k){return plakaWeights[k]||0;}
+function tumStoklariGetir(){return Object.keys(stokBilgileri);}
+function stokDuzenleButonKontrol(){const b=document.getElementById("stokDuzenleBtn");if(b)b.style.display=adminKullanicilar.includes(aktifKullanici)?"inline-block":"none";}
+function kullaniciRolGuncelle(){const b=document.getElementById("userRolBadge");if(b)b.innerHTML=isAdmin()?'<span class="kullanici-rol admin">Admin</span>':'<span class="kullanici-rol kullanici">Kullanıcı</span>';}
+function tarihToSortable(t){if(!t)return"00000000";let p=t.split(' ')[0].split('.');if(p.length===3)return p[2]+p[1]+p[0];return"00000000";}
+function sortData(d,c,dir){return d.slice().sort(function(a,b){let vA,vB;switch(c){case'seriNo':vA=(a["Seri No"]||"").toString();vB=(b["Seri No"]||"").toString();break;case'siraNo':vA=parseInt(a["Sıra No"])||0;vB=parseInt(b["Sıra No"])||0;break;case'grup':vA=(a["Grup"]||"").toString();vB=(b["Grup"]||"").toString();break;case'olusturan':vA=(a["Olusturan"]||"").toLowerCase();vB=(b["Olusturan"]||"").toLowerCase();break;case'kayitTarihi':vA=tarihToSortable(a["Kayıt Tarihi"]);vB=tarihToSortable(b["Kayıt Tarihi"]);break;case'kayitSaati':vA=(a["Kayıt Saati"]||"").toString();vB=(b["Kayıt Saati"]||"").toString();break;case'duzenlemeTarihi':vA=tarihToSortable(a["DuzenlemeTarihi"]);vB=tarihToSortable(b["DuzenlemeTarihi"]);break;case'durum':vA=getDurum(a);vB=getDurum(b);break;default:return 0;}if(vA<vB)return dir==='asc'?-1:1;if(vA>vB)return dir==='asc'?1:-1;return 0;});}
+function urunleriGuncelle(){urunler={"430":Object.keys(stokBilgileri).filter(k=>stokGruplari[k]==="430"),"DKP":Object.keys(stokBilgileri).filter(k=>stokGruplari[k]==="DKP"),"GALVANIZ":Object.keys(stokBilgileri).filter(k=>stokGruplari[k]==="GALVANIZ"),"304":Object.keys(stokBilgileri).filter(k=>stokGruplari[k]==="304"),"316":Object.keys(stokBilgileri).filter(k=>stokGruplari[k]==="316"),"201":Object.keys(stokBilgileri).filter(k=>stokGruplari[k]==="201")};}
 
-    let plakaWeights = JSON.parse(localStorage.getItem("plakaWeights")) || {
-        "HC1.0001": 17.7746, "HC1.0002": 12.3447, "HC1.0003": 7.9030, "HC1.0004": 6.1632, "HC1.0005": 6.0995,
-        "HC1.0006": 6.9127, "HC1.0015": 6.6357,
-        "HC1.0018": 5.3380, "HC1.0019": 3.5614, "HC1.0020": 5.8763,
-        "HC1.0021": 11.6620, "HC1.0022": 10.9340, "HC1.0024": 28.4417, "HC1.0025": 8.8480,
-        "HC1.0027": 35.5523, "HC1.0045": 31.6019, "HC1.0047": 12.6428, "HC1.0050": 28.4417, "HC1.0052": 12.6428,
-        "HC1.0058": 19.7500, "HC1.0062": 0.8985,
-        "HC1.0064": 15.8000, "HC1.0073": 7.0508,
-        "HC1.0074": 9.4563, "HC1.0075": 11.1469, "HC1.0076": 14.2358, "HC1.0077": 17.8619, "HD1.0001": 28.0000,
-        "HD1.0002": 37.0000, "HD1.0003": 19.7000, "HD1.0004": 53.4000,"HG1.0002": 24.2925,
-        "HG1.0004": 53.3257, "HG1.0007": 9.4807,
-        "HG1.0008": 8.8481,  "HG1.0010": 6.5717, "HG1.0011": 5.3686, "HG1.0012": 17.7746,
-        "HG1.0013": 47.4236, "HG1.0016": 12.3438, "HG1.0018": 37.0313, "HG1.0019": 9.8750, "HG1.0020": 7.9000, "HG1.0021": 11.3563, 
-        "HN1.0002": 28.4417, 
-        "HN1.0006": 6.0995, 
-        "HN1.0011": 35.5523, "HN1.0012": 28.4417, "HN1.0013": 5.3380, "HN1.0014": 5.8763, "HN1.0015": 7.9030,
-        "HN1.0016": 6.1632, "HN1.0018": 17.7746, "HN1.0019": 10.4169, "HN1.0020": 6.6360,
-        "HN1.0021": 11.6620, "HN1.0022": 8.8480, "HN1.0025": 12.6428,
-        "HN1.0026": 19.7549, "HN1.0028": 15.8000, "HN1.0029": 3.5606,
-        "HN1.0032": 12.3438, "HN1.0035": 17.8619, "HN1.0036": 7.0508, "HN1.0037": 9.4563,
-        "HN1.0038": 11.1469, "HN1.0040": 14.2358, "HN1.0043": 1.1134,
-        "HN1.0048": 29.6223, "HX1.0001": 17.7750, "HX1.0002": 6.3200, "HX1.0043": 28.4400,
-        "HX1.0044": 35.5500, "HX1.0045": 35.5500
-    };
+// ============ FIREBASE İŞLEMLERİ ============
+function updateSyncStatus(online){isOnline=online;const s=document.getElementById("syncStatus");if(s){s.innerHTML=online?"✅ Firebase Senkron Aktif":"⚠️ Çevrimdışı (Yerel)";s.className=online?"sync-status online":"sync-status offline";}}
+function saveToLocal(){localStorage.setItem("kullanicilar",JSON.stringify(kullanicilar));localStorage.setItem("gecmisVeriler",JSON.stringify(gecmisVeriler));localStorage.setItem("siraNo",siraNo);localStorage.setItem("silinenSiralar",JSON.stringify(silinenSiralar));localStorage.setItem("aktarilanEvraklar",JSON.stringify(aktarilanEvraklar));localStorage.setItem("silinenEvraklarArsivi",JSON.stringify(silinenEvraklarArsivi));localStorage.setItem("stokBilgileri",JSON.stringify(stokBilgileri));localStorage.setItem("plakaWeights",JSON.stringify(plakaWeights));localStorage.setItem("stokGruplari",JSON.stringify(stokGruplari));}
+// 🔥 Promise döndüren saveToFirebase
+function saveToFirebase(){var d={kullanicilar,gecmisVeriler,siraNo,silinenSiralar,aktarilanEvraklar,silinenEvraklarArsivi,stokBilgileri:encodeObjectForFirebase(stokBilgileri),plakaWeights:encodeObjectForFirebase(plakaWeights),stokGruplari:encodeObjectForFirebase(stokGruplari),lastUpdated:firebase.database.ServerValue.TIMESTAMP};return database.ref('sacKesim/').set(d).then(()=>{console.log("✅ Firebase kaydedildi - aktarilanEvraklar:",aktarilanEvraklar.length);updateSyncStatus(true);saveToLocal();}).catch(e=>{console.error("❌ Firebase yazma hatası:",e);updateSyncStatus(false);saveToLocal();});}
+function syncData(){return saveToFirebase();}
+// 🔥 HER ZAMAN Firebase öncelikli
+function loadFromFirebase(){database.ref('sacKesim/').once('value').then(snap=>{var d=snap.val();if(d){if(d.kullanicilar)kullanicilar=d.kullanicilar;if(d.gecmisVeriler)gecmisVeriler=d.gecmisVeriler;if(d.siraNo!==undefined)siraNo=d.siraNo;if(d.silinenSiralar)silinenSiralar=d.silinenSiralar;if(d.aktarilanEvraklar)aktarilanEvraklar=d.aktarilanEvraklar;if(d.silinenEvraklarArsivi)silinenEvraklarArsivi=d.silinenEvraklarArsivi;if(d.stokBilgileri)stokBilgileri=decodeObjectFromFirebase(d.stokBilgileri);if(d.plakaWeights)plakaWeights=decodeObjectFromFirebase(d.plakaWeights);if(d.stokGruplari)stokGruplari=decodeObjectFromFirebase(d.stokGruplari);urunleriGuncelle();saveToLocal();updateSyncStatus(true);console.log("✅ Firebase yüklendi - Aktarılan:",aktarilanEvraklar.length);if(aktifKullanici){kullaniciRolGuncelle();stokDuzenleButonKontrol();if(document.getElementById("oncekiGirislerAlan")&&!document.getElementById("oncekiGirislerAlan").classList.contains("hidden"))gecmisListesiniGoster();}}else{saveToFirebase();}}).catch(e=>{console.error("❌ Firebase okuma hatası:",e);updateSyncStatus(false);});}
 
-    let stokGruplari = JSON.parse(localStorage.getItem("stokGruplari")) || {};
-    
-    if (Object.keys(stokGruplari).length === 0) {
-        Object.keys(stokBilgileri).forEach(function(kod) {
-            if (kod.startsWith("HC1")) stokGruplari[kod] = "430";
-            else if (kod.startsWith("HD1")) stokGruplari[kod] = "DKP";
-            else if (kod.startsWith("HG1")) stokGruplari[kod] = "GALVANIZ";
-            else if (kod.startsWith("HN1")) stokGruplari[kod] = "304";
-            else if (kod === "HX1.0043") stokGruplari[kod] = "201";
-            else if (["HX1.0001","HX1.0002","HX1.0044","HX1.0045"].includes(kod)) stokGruplari[kod] = "316";
-        });
-        localStorage.setItem("stokGruplari", JSON.stringify(stokGruplari));
-    }
+// ============ LOGIN ============
+document.getElementById("loginBtn").onclick=function(){var u=document.getElementById("loginUsername").value.trim(),p=document.getElementById("loginPassword").value.trim();if(kullanicilar[u]&&kullanicilar[u]===p){aktifKullanici=u;document.getElementById("loginPage").style.display="none";document.getElementById("mainPage").style.display="block";document.getElementById("currentUser").textContent=u;kullaniciRolGuncelle();stokDuzenleButonKontrol();anaSayfayaDon();document.getElementById("loginError").style.display="none";loadFromFirebase();}else{document.getElementById("loginError").style.display="block";}};
+document.getElementById("logoutBtn").onclick=function(){aktifKullanici=null;ayarlarAdminOnaylandi=false;document.getElementById("mainPage").style.display="none";document.getElementById("loginPage").style.display="flex";};
+function anaSayfayaDon(){document.getElementById("yeniGirisAlan").classList.remove("hidden");document.getElementById("oncekiGirislerAlan").classList.add("hidden");document.getElementById("ayarlarAlan").classList.add("hidden");document.getElementById("stokDuzenleAlan").classList.add("hidden");}
 
-    function stokBilgileriniKaydet() {
-        localStorage.setItem("stokBilgileri", JSON.stringify(stokBilgileri));
-        localStorage.setItem("plakaWeights", JSON.stringify(plakaWeights));
-        localStorage.setItem("stokGruplari", JSON.stringify(stokGruplari));
-        urunleriGuncelle();
-        syncData();
-    }
+// ============ STOK GRUBU & YENİ GİRİŞ ============
+document.getElementById("stokGrubu").onchange=function(){var g=this.value,us=document.getElementById("urunKodu"),usd=document.getElementById("urunSecim"),ta=document.getElementById("tabloAlan");if(!g){usd.style.display="none";ta.style.display="none";ta.innerHTML="";return;}usd.style.display="block";us.innerHTML="";var sl=g==="HRD"?tumStoklariGetir():(urunler[g]||[]);sl.forEach(u=>{var o=document.createElement("option");o.value=u;o.textContent=u+" - "+getStokIsmi(u);us.appendChild(o);});ta.style.display="none";ta.innerHTML="";};
+document.getElementById("urunKodu").onchange=function(){var sec=Array.from(this.selectedOptions).map(o=>o.value),ta=document.getElementById("tabloAlan");if(sec.length===0){ta.style.display="none";ta.innerHTML="";return;}var h='<table><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';sec.forEach((u,i)=>{var w=getPlakaWeight(u),is=getStokIsmi(u),rid="r"+Date.now()+i;h+=`<tr id="${rid}"><td>${u}</td><td style="text-align:left;font-size:11px;">${is}</td><td><input type="number" class="small-input" data-weight="${w}" data-rid="${rid}" value="1" min="0" step="0.01"></td><td><input type="text" class="plaka-input" value="${formatNumberDisplay(w)}" readonly></td><td><input type="text" class="toplam-input" value="${formatNumberDisplay(w)}" readonly></td><td><input type="text" class="aciklama-input" placeholder="Açıklama" style="width:120px;"></td></tr>`;});h+='</tbody></table>';ta.innerHTML=h;ta.style.display="block";document.querySelectorAll('.small-input').forEach(inp=>{inp.oninput=function(){var m=parseNumber(this.value),w=parseNumber(this.dataset.weight),sat=document.getElementById(this.dataset.rid);if(sat){var t=sat.querySelector('.toplam-input');if(t)t.value=formatNumberDisplay(m*w);}};});};
+function kaydetVeGecmiseGit(yonlendir){var st=document.querySelectorAll("#tabloAlan tbody tr");if(st.length===0){document.getElementById("mesaj").innerHTML="<span class='error'>Lütfen en az bir ürün seçin!</span>";return false;}var g=document.getElementById("stokGrubu").value;if(!g){document.getElementById("mesaj").innerHTML="<span class='error'>Lütfen stok grubu seçin!</span>";return false;}var ms=getSiraNo(),kl=[];st.forEach(tr=>{var sk=tr.cells[0]?tr.cells[0].textContent.trim():"",si=tr.cells[1]?tr.cells[1].textContent.trim():"",mi=tr.querySelector('.small-input'),pi=tr.querySelector('.plaka-input'),ti=tr.querySelector('.toplam-input'),ai=tr.querySelector('.aciklama-input');kl.push({"Stok Kodu":sk,"Stok İsmi":si,"Miktar":formatNumber(mi?mi.value:"0"),"1 Plaka (kg)":formatNumber(pi?pi.value:"0"),"Toplam Kg":formatNumber(ti?ti.value:"0"),"Açıklama":ai?ai.value:""});});var s=new Date(),ts=s.toLocaleDateString('tr-TR'),ss=s.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});var e={"Seri No":SERI_NO,"Sıra No":ms,"Grup":g,"Olusturan":aktifKullanici,"Duzenleyen":"","Duzenlendi":false,"DuzenlemeTarihi":"","Kayıt Tarihi":ts,"Kayıt Saati":ss,"Kalemler":kl};gecmisVeriler.push(e);siranoArtir();syncData();document.getElementById("mesaj").innerHTML="<span class='success'>✅ Evrak kaydedildi! Sıra No: "+ms+"</span>";document.getElementById("tabloAlan").innerHTML="";document.getElementById("tabloAlan").style.display="none";document.getElementById("urunKodu").selectedIndex=-1;document.getElementById("stokGrubu").selectedIndex=0;document.getElementById("urunSecim").style.display="none";if(yonlendir)setTimeout(()=>gecmisListesiniGoster(),800);return true;}
+document.getElementById("kaydetBtn").onclick=function(){kaydetVeGecmiseGit(false);};
+document.getElementById("kayitSonrasiGecmisBtn").onclick=function(){kaydetVeGecmiseGit(true);};
+document.getElementById("yeniGirisBtn").onclick=anaSayfayaDon;
+document.getElementById("oncekiGirislerBtn").onclick=gecmisListesiniGoster;
+document.getElementById("yeniKayitDonBtn").onclick=anaSayfayaDon;
 
-    let urunler = {};
+// ============ ÖZET ============
+function ozetHesapla(){var t=document.getElementById("ozetTarih").value;if(!t){ozetTumZaman();return;}var p=t.split('-'),tt=p[2]+'.'+p[1]+'.'+p[0],tm=0,tk=0,es=0,ss=new Set();gecmisVeriler.forEach(e=>{if(e["Kayıt Tarihi"]===tt){es++;(e.Kalemler||[]).forEach(k=>{tm+=parseNumber(k["Miktar"]||0);tk+=parseNumber(k["Toplam Kg"]||0);if(k["Stok Kodu"])ss.add(k["Stok Kodu"]);});}});document.getElementById("ozetToplamMiktar").textContent=formatNumberDisplay(tm);document.getElementById("ozetToplamKg").textContent=formatNumberDisplay(tk)+" kg";document.getElementById("ozetEvrakSayisi").textContent=es;document.getElementById("ozetStokCesidi").textContent=ss.size;document.getElementById("ozetTumZamanDiv").style.display="none";}
+function ozetBugun(){var b=new Date();document.getElementById("ozetTarih").value=b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(b.getDate()).padStart(2,'0');ozetHesapla();}
+function ozetTumZaman(){var tm=0,tk=0,es=gecmisVeriler.length,ss=new Set(),ts=new Set();gecmisVeriler.forEach(e=>{if(e["Kayıt Tarihi"])ts.add(e["Kayıt Tarihi"]);(e.Kalemler||[]).forEach(k=>{tm+=parseNumber(k["Miktar"]||0);tk+=parseNumber(k["Toplam Kg"]||0);if(k["Stok Kodu"])ss.add(k["Stok Kodu"]);});});document.getElementById("ozetToplamMiktar").textContent=formatNumberDisplay(tm);document.getElementById("ozetToplamKg").textContent=formatNumberDisplay(tk)+" kg";document.getElementById("ozetEvrakSayisi").textContent=es;document.getElementById("ozetStokCesidi").textContent=ss.size;var ta=Array.from(ts).sort();document.getElementById("ozetTarihAralik").textContent=(ta[0]||"-")+" - "+(ta[ta.length-1]||"-");document.getElementById("ozetTumMiktar").textContent=formatNumberDisplay(tm);document.getElementById("ozetTumKg").textContent=formatNumberDisplay(tk)+" kg";document.getElementById("ozetTumEvrak").textContent=es;document.getElementById("ozetTumZamanDiv").style.display="flex";}
 
-    function urunleriGuncelle() {
-        urunler = {
-            "430": Object.keys(stokBilgileri).filter(function(k) { return stokGruplari[k] === "430"; }),
-            "DKP": Object.keys(stokBilgileri).filter(function(k) { return stokGruplari[k] === "DKP"; }),
-            "GALVANIZ": Object.keys(stokBilgileri).filter(function(k) { return stokGruplari[k] === "GALVANIZ"; }),
-            "304": Object.keys(stokBilgileri).filter(function(k) { return stokGruplari[k] === "304"; }),
-            "316": Object.keys(stokBilgileri).filter(function(k) { return stokGruplari[k] === "316"; }),
-            "201": Object.keys(stokBilgileri).filter(function(k) { return stokGruplari[k] === "201"; })
-        };
-    }
-    urunleriGuncelle();
+// ============ STOK DÜZENLEME ============
+document.getElementById("stokDuzenleBtn").onclick=function(){if(!adminKullanicilar.includes(aktifKullanici)){alert("Sadece Muhammed ve Burak erişebilir!");return;}stokDuzenleSayfasiniAc();};
+document.getElementById("stokDuzenleCikBtn").onclick=anaSayfayaDon;
+function stokDuzenleSayfasiniAc(){document.getElementById("yeniGirisAlan").classList.add("hidden");document.getElementById("oncekiGirislerAlan").classList.add("hidden");document.getElementById("ayarlarAlan").classList.add("hidden");document.getElementById("stokDuzenleAlan").classList.remove("hidden");document.getElementById("stokListesi").innerHTML="";document.getElementById("stokArama").value="";stokListesiniGoster();}
+function stokBilgileriniKaydet(){localStorage.setItem("stokBilgileri",JSON.stringify(stokBilgileri));localStorage.setItem("plakaWeights",JSON.stringify(plakaWeights));localStorage.setItem("stokGruplari",JSON.stringify(stokGruplari));urunleriGuncelle();syncData();}
+document.getElementById("stokEkleBtn").onclick=function(){var g=document.getElementById("yeniStokGrup").value,k=document.getElementById("yeniStokKodu").value.trim(),i=document.getElementById("yeniStokIsmi").value.trim(),ps=document.getElementById("yeniStokPlaka").value.trim();if(!k||!i||!ps){document.getElementById("stokEkleMesaj").innerHTML="<span class='error'>Tüm alanları doldurun!</span>";return;}if(stokBilgileri[k]){document.getElementById("stokEkleMesaj").innerHTML="<span class='error'>Bu stok kodu zaten mevcut!</span>";return;}var p=parseNumber(ps);if(p<=0){document.getElementById("stokEkleMesaj").innerHTML="<span class='error'>Geçerli bir plaka kilosu girin!</span>";return;}stokBilgileri[k]=i;plakaWeights[k]=p;stokGruplari[k]=g;stokBilgileriniKaydet();document.getElementById("yeniStokKodu").value="";document.getElementById("yeniStokIsmi").value="";document.getElementById("yeniStokPlaka").value="";document.getElementById("stokEkleMesaj").innerHTML="<span class='success'>✅ Stok eklendi: "+k+"</span>";stokListesiniGoster();};
+document.getElementById("stokArama").oninput=function(){stokListesiniGoster(this.value);};
+function stokListesiniGoster(arama){var c=document.getElementById("stokListesi"),tk=Object.keys(stokBilgileri).sort();if(arama){var ak=arama.toLowerCase();tk=tk.filter(k=>k.toLowerCase().includes(ak)||(stokBilgileri[k]||"").toLowerCase().includes(ak)||(stokGruplari[k]||"").toLowerCase().includes(ak));}if(tk.length===0){c.innerHTML="<p style='padding:20px;text-align:center;color:#999;'>Stok bulunamadı.</p>";return;}var h='';tk.forEach(k=>{h+=`<div class="stok-card"><span class="stok-kodu">${k}</span><span class="stok-bilgi">${stokBilgileri[k]||""}</span><span class="stok-grup">${stokGruplari[k]||""}</span><span class="stok-kilo">${formatNumberDisplay(plakaWeights[k]||0)} kg</span><div class="btn-group"><button class="btn btn-info btn-xs" onclick="stokDuzenleModalAc('${k}')">✏️</button><button class="btn btn-danger btn-xs" onclick="stokSil('${k}')">🗑️</button></div></div>`;});c.innerHTML=h;}
+window.stokDuzenleModalAc=function(k){duzenlenenStokKodu=k;document.getElementById("duzenleStokKodu").value=k;document.getElementById("duzenleStokIsmi").value=stokBilgileri[k]||"";document.getElementById("duzenleStokPlaka").value=formatNumberDisplay(plakaWeights[k]||0);document.getElementById("duzenleStokGrup").value=stokGruplari[k]||"430";document.getElementById("stokDuzenleModal").style.display="block";};
+document.getElementById("stokGuncelleBtn").onclick=function(){var k=duzenlenenStokKodu;if(!k)return;var yi=document.getElementById("duzenleStokIsmi").value.trim(),yps=document.getElementById("duzenleStokPlaka").value.trim(),yg=document.getElementById("duzenleStokGrup").value;if(!yi||!yps)return;var yp=parseNumber(yps);if(yp<=0)return;stokBilgileri[k]=yi;plakaWeights[k]=yp;stokGruplari[k]=yg;stokBilgileriniKaydet();document.getElementById("stokDuzenleModal").style.display="none";duzenlenenStokKodu=null;stokListesiniGoster();};
+window.stokSil=function(k){if(!confirm(k+" silinsin mi?"))return;delete stokBilgileri[k];delete plakaWeights[k];delete stokGruplari[k];stokBilgileriniKaydet();stokListesiniGoster();};
 
-    function getStokIsmi(kod) { return stokBilgileri[kod] || ""; }
-    function getPlakaWeight(kod) { return plakaWeights[kod] || 0; }
-    function tumStoklariGetir() { return Object.keys(stokBilgileri); }
+// ============ ÖNCEKİ GİRİŞLER ============
+function gecmisListesiniGoster(){document.getElementById("yeniGirisAlan").classList.add("hidden");document.getElementById("oncekiGirislerAlan").classList.remove("hidden");document.getElementById("ayarlarAlan").classList.add("hidden");document.getElementById("stokDuzenleAlan").classList.add("hidden");var ya=document.getElementById("yetkiBilgiAlani");if(isStandartKullanici())ya.innerHTML='<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Excel\'e aktarılmış evraklar kilitlidir. Sadece <strong>Muhammed & Burak</strong> düzenleyebilir ve silebilir.</div>';else if(isAdmin())ya.innerHTML='<div class="kilitli-bilgi" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32;"><span class="kilit-icon">👑</span> Admin yetkisi: Tüm evrakları düzenleyebilir ve silebilirsiniz.</div>';else ya.innerHTML='';olusturanFiltresiniGuncelle();gecmisVeriler=gecmisVeriler.map(e=>{if(!e.Olusturan)e.Olusturan=e.Kullanıcı||"Bilinmiyor";if(!e.hasOwnProperty("Duzenlendi"))e.Duzenlendi=false;if(!e.hasOwnProperty("Duzenleyen"))e.Duzenleyen="";if(!e.hasOwnProperty("DuzenlemeTarihi"))e.DuzenlemeTarihi="";if(!e["Seri No"]||e["Seri No"]==="SAC1")e["Seri No"]=SERI_NO;if(!e["Kayıt Tarihi"])e["Kayıt Tarihi"]="";if(!e["Kayıt Saati"])e["Kayıt Saati"]="";return e;});filteredVeriler=gecmisVeriler.slice();filteredVeriler=sortData(filteredVeriler,currentSortColumn,currentSortDirection);currentPage=1;seciliEvrakIndisleri.clear();if(ozetModu==="tarih"&&seciliOzetTarih)ozetHesapla();else ozetTumZaman();gecmisYukle();}
+function olusturanFiltresiniGuncelle(){var s=document.getElementById("filtre_olusturan"),md=s.value,ks=new Set();gecmisVeriler.forEach(e=>{if(e["Olusturan"])ks.add(e["Olusturan"]);});s.innerHTML='<option value="">-- Tümü --</option>';Array.from(ks).sort().forEach(k=>{s.innerHTML+=`<option value="${k}">${k}</option>`;});s.value=md;}
+document.getElementById("filtreBugunBtn").onclick=function(){var b=new Date(),bs=b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(b.getDate()).padStart(2,'0');document.getElementById("filtre_tarih_baslangic").value=bs;document.getElementById("filtre_tarih_bitis").value=bs;filtreUygulaVeGoster();};
+document.getElementById("filtreBuHaftaBtn").onclick=function(){var b=new Date(),g=b.getDay(),p=new Date(b);p.setDate(b.getDate()-(g===0?6:g-1));var ps=p.getFullYear()+'-'+String(p.getMonth()+1).padStart(2,'0')+'-'+String(p.getDate()).padStart(2,'0'),pz=new Date(p);pz.setDate(pz.getDate()+6);var pzs=pz.getFullYear()+'-'+String(pz.getMonth()+1).padStart(2,'0')+'-'+String(pz.getDate()).padStart(2,'0');document.getElementById("filtre_tarih_baslangic").value=ps;document.getElementById("filtre_tarih_bitis").value=pzs;filtreUygulaVeGoster();};
+document.getElementById("filtreBuAyBtn").onclick=function(){var b=new Date(),ab=b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-01',aBs=b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(new Date(b.getFullYear(),b.getMonth()+1,0).getDate()).padStart(2,'0');document.getElementById("filtre_tarih_baslangic").value=ab;document.getElementById("filtre_tarih_bitis").value=aBs;filtreUygulaVeGoster();};
+function filtreUygulaVeGoster(){currentPage=1;seciliEvrakIndisleri.clear();gecmisYukle();}
+function filtreUygula(){var s=document.getElementById("filtre_seri").value.toLowerCase(),si=document.getElementById("filtre_sira").value.toLowerCase(),g=document.getElementById("filtre_grup").value,d=document.getElementById("filtre_durum").value,o=document.getElementById("filtre_olusturan").value,tb=document.getElementById("filtre_tarih_baslangic").value,tBt=document.getElementById("filtre_tarih_bitis").value;filteredVeriler=gecmisVeriler.filter(r=>{if(s&&!r["Seri No"].toString().toLowerCase().includes(s))return false;if(si&&!r["Sıra No"].toString().toLowerCase().includes(si))return false;if(g&&r["Grup"]!==g)return false;if(o&&r["Olusturan"]!==o)return false;if(d){var du=getDurum(r);if(d==="bekliyor"&&!du.includes("Bekliyor"))return false;if(d==="aktarildi"&&!du.includes("Aktarıldı"))return false;if(d==="duzenlendi"&&!du.includes("Düzenlendi"))return false;}if(tb||tBt){var kt=r["Kayıt Tarihi"]||"";if(!kt)return false;var p=kt.split('.');if(p.length!==3)return false;var ik=p[2]+'-'+p[1]+'-'+p[0];if(tb&&ik<tb)return false;if(tBt&&ik>tBt)return false;}return true;});}
+document.getElementById("filtreUygulaBtn").onclick=filtreUygulaVeGoster;
+document.getElementById("filtreTemizleBtn").onclick=function(){document.getElementById("filtre_seri").value="";document.getElementById("filtre_sira").value="";document.getElementById("filtre_grup").value="";document.getElementById("filtre_durum").value="";document.getElementById("filtre_olusturan").value="";document.getElementById("filtre_tarih_baslangic").value="";document.getElementById("filtre_tarih_bitis").value="";currentPage=1;seciliEvrakIndisleri.clear();gecmisYukle();};
+function siralamaUygulaVeGoster(sutun){if(currentSortColumn===sutun)currentSortDirection=currentSortDirection==='asc'?'desc':'asc';else{currentSortColumn=sutun;currentSortDirection=['siraNo'].includes(sutun)?'desc':'asc';}filtreUygula();filteredVeriler=sortData(filteredVeriler,currentSortColumn,currentSortDirection);var si={seriNo:'Seri No',siraNo:'Sıra No',grup:'Grup',olusturan:'Oluşturan',kayitTarihi:'Kayıt Tarihi',kayitSaati:'Kayıt Saati',duzenlemeTarihi:'Düzenleme Tarihi',durum:'Durum'},yi=currentSortDirection==='asc'?'🔼 A→Z (Artan)':'🔽 Z→A (Azalan)';var bs=document.getElementById("siralamaBilgi");bs.textContent='🔤 Sıralama: '+si[sutun]+' - '+yi;bs.style.display='inline-block';currentPage=1;gecmisYukle();}
+function gecmisYukle(){var c=document.getElementById("gecmisTablosu"),kss=document.getElementById("kayitSayisi");if(gecmisVeriler.length===0){c.innerHTML="<p style='padding:30px;text-align:center;color:#999;'>Henüz kayıt bulunmuyor.</p>";kss.textContent="Toplam: 0 evrak";document.getElementById("paginationContainer").innerHTML="";document.getElementById("seciliSayi").textContent="0";document.getElementById("siralamaBilgi").style.display="none";return;}filtreUygula();filteredVeriler=sortData(filteredVeriler,currentSortColumn,currentSortDirection);kss.textContent="Toplam: "+gecmisVeriler.length+" evrak | Gösterilen: "+filteredVeriler.length+" | Aktarılan: "+aktarilanEvraklar.length;var tp=Math.ceil(filteredVeriler.length/pageSize);if(currentPage>tp&&tp>0)currentPage=tp;if(currentPage<1)currentPage=1;var st=(currentPage-1)*pageSize,pd=filteredVeriler.slice(st,st+pageSize),si={};si[currentSortColumn]=currentSortDirection;var h='<table><thead><tr><th class="no-sort checkbox-col"><input type="checkbox" id="selectAllCheckbox"></th>';h+=`<th class="sortable ${si.seriNo||''}" onclick="siralamaUygulaVeGoster('seriNo')">Seri No</th>`;h+=`<th class="sortable ${si.siraNo||''}" onclick="siralamaUygulaVeGoster('siraNo')">Sıra No</th>`;h+=`<th class="sortable ${si.grup||''}" onclick="siralamaUygulaVeGoster('grup')">Grup</th>`;h+=`<th class="sortable ${si.olusturan||''}" onclick="siralamaUygulaVeGoster('olusturan')">Oluşturan</th>`;h+=`<th class="sortable ${si.kayitTarihi||''}" onclick="siralamaUygulaVeGoster('kayitTarihi')">Kayıt Tarihi</th>`;h+=`<th class="sortable ${si.kayitSaati||''}" onclick="siralamaUygulaVeGoster('kayitSaati')">Kayıt Saati</th>`;h+=`<th class="sortable ${si.duzenlemeTarihi||''}" onclick="siralamaUygulaVeGoster('duzenlemeTarihi')">Düzenleme Tarihi</th>`;h+=`<th class="sortable ${si.durum||''}" onclick="siralamaUygulaVeGoster('durum')">Durum</th>`;h+='<th class="no-sort">İşlem</th></tr></thead><tbody>';pd.forEach(r=>{var gi=gecmisVeriler.indexOf(r),ch=seciliEvrakIndisleri.has(gi)?'checked':'',du=getDurum(r),dc=getDurumClass(du),kl=evrakKilitliMi(r),rc=kl?'kilitli':'',dd=!kullaniciEvragiDuzenleyebilirMi(r)?'disabled':'',sd=!kullaniciEvragiSilebilirMi(r)?'disabled':'';h+=`<tr data-globalidx="${gi}" class="${rc}"><td class="checkbox-col"><input type="checkbox" class="evrak-checkbox" data-idx="${gi}" ${ch}></td><td>${r["Seri No"]}</td><td>${r["Sıra No"]}</td><td>${r["Grup"]}</td><td>${r["Olusturan"]||""}</td><td>${r["Kayıt Tarihi"]||""}</td><td>${r["Kayıt Saati"]||""}</td><td class="duzenleme-tarihi">${r["DuzenlemeTarihi"]||"-"}</td><td class="${dc}">${du}${kl?' 🔒':''}</td><td><button class="btn btn-info btn-sm" onclick="detayGoster(${gi})" ${dd}>📄 Detay</button> <button class="btn btn-danger btn-sm" onclick="evrakSil(${gi})" ${sd}>🗑️ Sil</button></td></tr>`;});h+='</tbody></table>';c.innerHTML=h;document.querySelectorAll('.evrak-checkbox').forEach(cb=>{cb.onchange=function(){var idx=parseInt(this.dataset.idx);if(this.checked)seciliEvrakIndisleri.add(idx);else seciliEvrakIndisleri.delete(idx);document.getElementById("seciliSayi").textContent=seciliEvrakIndisleri.size;var sa=document.getElementById("selectAllCheckbox");if(sa)sa.checked=(seciliEvrakIndisleri.size===pd.length&&pd.length>0);};});var saCb=document.getElementById("selectAllCheckbox");if(saCb){saCb.onchange=function(){var ac=document.querySelectorAll('.evrak-checkbox');if(this.checked){ac.forEach(cb=>{cb.checked=true;seciliEvrakIndisleri.add(parseInt(cb.dataset.idx));});}else{ac.forEach(cb=>{cb.checked=false;seciliEvrakIndisleri.delete(parseInt(cb.dataset.idx));});}document.getElementById("seciliSayi").textContent=seciliEvrakIndisleri.size;};}document.getElementById("seciliSayi").textContent=seciliEvrakIndisleri.size;var ph="";if(tp>1){ph+=`<button onclick="sayfaDegistir(1)"${currentPage===1?' disabled':''}>⏮</button>`;ph+=`<button onclick="sayfaDegistir(${currentPage-1})"${currentPage===1?' disabled':''}>◀</button>`;ph+=`<span style="padding:6px 12px;">Sayfa ${currentPage}/${tp}</span>`;ph+=`<button onclick="sayfaDegistir(${currentPage+1})"${currentPage===tp?' disabled':''}>▶</button>`;ph+=`<button onclick="sayfaDegistir(${tp})"${currentPage===tp?' disabled':''}>⏭</button>`;}document.getElementById("paginationContainer").innerHTML=ph;document.getElementById("gecmisMesaj").innerHTML=filteredVeriler.length>0?"":"<span style='color:orange;'>Filtreye uygun evrak bulunamadı.</span>";}
+window.sayfaDegistir=function(p){currentPage=p;gecmisYukle();};
 
-    // ============ YETKİ KONTROL FONKSİYONLARI ============
-    function isAdmin() {
-        return adminKullanicilar.includes(aktifKullanici);
-    }
-    
-    function isStandartKullanici() {
-        return aktifKullanici && !isAdmin();
-    }
-    
-    function evrakAktarildiMi(evrak) {
-        return aktarilanEvraklar.includes(evrak["Sıra No"]);
-    }
-    
-    function evrakKilitliMi(evrak) {
-        return evrakAktarildiMi(evrak);
-    }
-    
-    function kullaniciEvragiDuzenleyebilirMi(evrak) {
-        // Admin her şeyi yapabilir
-        if (isAdmin()) return true;
-        
-        // Standart kullanıcı Excel'e aktarılmış evrakı düzenleyemez
-        if (isStandartKullanici() && evrakKilitliMi(evrak)) return false;
-        
-        // Standart kullanıcı aktarılmamış evrakı düzenleyebilir
-        return true;
-    }
-    
-    function kullaniciEvragiSilebilirMi(evrak) {
-        // Admin her şeyi yapabilir
-        if (isAdmin()) return true;
-        
-        // Standart kullanıcı Excel'e aktarılmış evrakı silemez
-        if (isStandartKullanici() && evrakKilitliMi(evrak)) return false;
-        
-        // Standart kullanıcı aktarılmamış evrakı silebilir
-        return true;
-    }
-
-    // ============ SAYI FORMATLAMA ============
-    function parseNumber(value) {
-        if (typeof value === 'number') return value;
-        if (!value) return 0;
-        let cleaned = value.toString().replace(',', '.');
-        let num = parseFloat(cleaned);
-        return isNaN(num) ? 0 : num;
-    }
-
-    function formatNumber(num) {
-        if (typeof num === 'string') num = parseNumber(num);
-        return num.toFixed(2);
-    }
-
-    function formatNumberDisplay(num) {
-        if (typeof num === 'string') num = parseNumber(num);
-        return num.toFixed(2).replace('.', ',');
-    }
-
-    // ============ FIREBASE ANAHTAR ENCODE/DECODE ============
-    function encodeFirebaseKey(key) {
-        return String(key).replace(/\./g, '_DOT_')
-              .replace(/#/g, '_HASH_')
-              .replace(/\$/g, '_DOLLAR_')
-              .replace(/\//g, '_SLASH_')
-              .replace(/\[/g, '_LBRACKET_')
-              .replace(/\]/g, '_RBRACKET_');
-    }
-
-    function decodeFirebaseKey(key) {
-        return String(key).replace(/_DOT_/g, '.')
-              .replace(/_HASH_/g, '#')
-              .replace(/_DOLLAR_/g, '$')
-              .replace(/_SLASH_/g, '/')
-              .replace(/_LBRACKET_/g, '[')
-              .replace(/_RBRACKET_/g, ']');
-    }
-
-    function encodeObjectForFirebase(obj) {
-        if (!obj || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) return obj.map(function(item) { return encodeObjectForFirebase(item); });
-        var yeni = {};
-        Object.keys(obj).forEach(function(k) {
-            var encodedKey = encodeFirebaseKey(k);
-            var val = obj[k];
-            if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
-                yeni[encodedKey] = encodeObjectForFirebase(val);
-            } else {
-                yeni[encodedKey] = val;
-            }
-        });
-        return yeni;
-    }
-
-    function decodeObjectFromFirebase(obj) {
-        if (!obj || typeof obj !== 'object') return obj;
-        if (Array.isArray(obj)) return obj.map(function(item) { return decodeObjectFromFirebase(item); });
-        var yeni = {};
-        Object.keys(obj).forEach(function(k) {
-            var decodedKey = decodeFirebaseKey(k);
-            var val = obj[k];
-            if (val !== null && typeof val === 'object' && !Array.isArray(val)) {
-                yeni[decodedKey] = decodeObjectFromFirebase(val);
-            } else {
-                yeni[decodedKey] = val;
-            }
-        });
-        return yeni;
-    }
-
-    // ============ FIREBASE VERİ SENKRONİZASYONU ============
-    function updateSyncStatus(online) {
-        isOnline = online;
-        const statusSpan = document.getElementById("syncStatus");
-        if (statusSpan) {
-            statusSpan.innerHTML = online ? "✅ Firebase Senkron Aktif" : "⚠️ Çevrimdışı (Yerel)";
-            statusSpan.className = online ? "sync-status online" : "sync-status offline";
-        }
-    }
-
-    function saveToLocal() {
-        localStorage.setItem("kullanicilar", JSON.stringify(kullanicilar));
-        localStorage.setItem("gecmisVeriler", JSON.stringify(gecmisVeriler));
-        localStorage.setItem("siraNo", siraNo);
-        localStorage.setItem("silinenSiralar", JSON.stringify(silinenSiralar));
-        localStorage.setItem("aktarilanEvraklar", JSON.stringify(aktarilanEvraklar));
-        localStorage.setItem("silinenEvraklarArsivi", JSON.stringify(silinenEvraklarArsivi));
-        localStorage.setItem("stokBilgileri", JSON.stringify(stokBilgileri));
-        localStorage.setItem("plakaWeights", JSON.stringify(plakaWeights));
-        localStorage.setItem("stokGruplari", JSON.stringify(stokGruplari));
-    }
-
-    function saveToFirebase() {
-        var encodedStokBilgileri = encodeObjectForFirebase(stokBilgileri);
-        var encodedPlakaWeights = encodeObjectForFirebase(plakaWeights);
-        var encodedStokGruplari = encodeObjectForFirebase(stokGruplari);
-        
-        const data = {
-            kullanicilar: kullanicilar,
-            gecmisVeriler: gecmisVeriler,
-            siraNo: siraNo,
-            silinenSiralar: silinenSiralar,
-            aktarilanEvraklar: aktarilanEvraklar,
-            silinenEvraklarArsivi: silinenEvraklarArsivi,
-            stokBilgileri: encodedStokBilgileri,
-            plakaWeights: encodedPlakaWeights,
-            stokGruplari: encodedStokGruplari,
-            lastUpdated: firebase.database.ServerValue.TIMESTAMP
-        };
-        
-        database.ref('sacKesim/').set(data).then(function() {
-            console.log("✅ Firebase'e kaydedildi");
-            updateSyncStatus(true);
-            saveToLocal();
-        }).catch(function(error) {
-            console.error("Firebase yazma hatası:", error);
-            updateSyncStatus(false);
-            saveToLocal();
-        });
-    }
-
-    function loadFromFirebase() {
-        database.ref('sacKesim/').once('value').then(function(snapshot) {
-            const data = snapshot.val();
-            if (data) {
-                if (data.kullanicilar) kullanicilar = data.kullanicilar;
-                if (data.gecmisVeriler) gecmisVeriler = data.gecmisVeriler;
-                if (data.siraNo) siraNo = data.siraNo;
-                if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
-                if (data.aktarilanEvraklar) aktarilanEvraklar = data.aktarilanEvraklar;
-                if (data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
-                if (data.stokBilgileri) stokBilgileri = decodeObjectFromFirebase(data.stokBilgileri);
-                if (data.plakaWeights) plakaWeights = decodeObjectFromFirebase(data.plakaWeights);
-                if (data.stokGruplari) stokGruplari = decodeObjectFromFirebase(data.stokGruplari);
-                
-                urunleriGuncelle();
-                saveToLocal();
-                updateSyncStatus(true);
-                console.log("✅ Firebase'den yüklendi,", gecmisVeriler.length, "kayıt");
-                
-                if (aktifKullanici) {
-                    kullaniciRolGuncelle();
-                    stokDuzenleButonKontrol();
-                    
-                    if (document.getElementById("oncekiGirislerAlan") && 
-                        !document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
-                        gecmisListesiniGoster();
-                    }
-                    if (document.getElementById("ayarlarAlan") && 
-                        !document.getElementById("ayarlarAlan").classList.contains("hidden")) {
-                        kullaniciListesiniGoster();
-                        silinenEvraklariGoster();
-                    }
-                    if (document.getElementById("stokDuzenleAlan") && 
-                        !document.getElementById("stokDuzenleAlan").classList.contains("hidden")) {
-                        stokListesiniGoster();
-                    }
-                }
-            } else {
-                saveToFirebase();
-            }
-        }).catch(function(error) {
-            console.error("Firebase okuma hatası:", error);
-            updateSyncStatus(false);
-        });
-    }
-
-    function syncData() { saveToFirebase(); }
-
-    function kullaniciRolGuncelle() {
-        const badge = document.getElementById("userRolBadge");
-        if (badge) {
-            if (isAdmin()) {
-                badge.innerHTML = '<span class="kullanici-rol admin">Admin</span>';
-            } else {
-                badge.innerHTML = '<span class="kullanici-rol kullanici">Kullanıcı</span>';
-            }
-        }
-    }
-
-    // ============ YARDIMCI FONKSİYONLAR ============
-    function getSiraNo() {
-        let mevcutSira = siraNo + 1;
-        while (silinenSiralar.includes(mevcutSira)) mevcutSira++;
-        return mevcutSira;
-    }
-    function siranoArtir() { siraNo++; syncData(); }
-
-    function getDurum(evrak) {
-        let siraNoVal = evrak["Sıra No"];
-        let duzenlendi = evrak["Duzenlendi"] || false;
-        let aktarildi = aktarilanEvraklar.includes(siraNoVal);
-        let duzenleyen = evrak["Duzenleyen"] || "";
-        if (duzenlendi && aktarildi) return "Excel'e Aktarıldı (Düzenlendi" + (duzenleyen ? ' - ' + duzenleyen : '') + ")";
-        else if (aktarildi) return "Excel'e Aktarıldı";
-        else if (duzenlendi) return "Bekliyor (Düzenlendi" + (duzenleyen ? ' - ' + duzenleyen : '') + ")";
-        else return "Bekliyor";
-    }
-
-    function getDurumClass(durum) {
-        if (durum.includes("Aktarıldı")) return "durum-aktarildi";
-        if (durum.includes("Düzenlendi")) return "durum-duzenlendi";
-        return "durum-bekliyor";
-    }
-
-    function adminYetkisiIste(islem, idx, ekMesaj) {
-        bekleyenIslem = islem;
-        bekleyenIdx = idx;
-        document.getElementById("adminModalMesaj").textContent = ekMesaj || 'Bu işlem için admin yetkisi gereklidir.';
-        document.getElementById("adminModal").style.display = "block";
-        document.getElementById("adminUsername").value = "";
-        document.getElementById("adminPassword").value = "";
-        document.getElementById("adminError").style.display = "none";
-    }
-
-    function stokDuzenleButonKontrol() {
-        const btn = document.getElementById("stokDuzenleBtn");
-        if (btn) {
-            if (aktifKullanici === "Muhammed") {
-                btn.style.display = "inline-block";
-            } else {
-                btn.style.display = "none";
-            }
-        }
-    }
-
-    // ============ LOGIN ============
-    document.getElementById("loginBtn").onclick = function() {
-        let username = document.getElementById("loginUsername").value.trim();
-        let password = document.getElementById("loginPassword").value.trim();
-        if (kullanicilar[username] && kullanicilar[username] === password) {
-            aktifKullanici = username;
-            document.getElementById("loginPage").style.display = "none";
-            document.getElementById("mainPage").style.display = "block";
-            document.getElementById("currentUser").textContent = username;
-            kullaniciRolGuncelle();
-            stokDuzenleButonKontrol();
-            anaSayfayaDon();
-            document.getElementById("loginError").style.display = "none";
-            loadFromFirebase();
-        } else {
-            document.getElementById("loginError").style.display = "block";
-        }
-    };
-
-    document.getElementById("logoutBtn").onclick = function() {
-        aktifKullanici = null;
-        ayarlarAdminOnaylandi = false;
-        document.getElementById("mainPage").style.display = "none";
-        document.getElementById("loginPage").style.display = "flex";
-        const btn = document.getElementById("stokDuzenleBtn");
-        if (btn) btn.style.display = "none";
-        const badge = document.getElementById("userRolBadge");
-        if (badge) badge.innerHTML = "";
-    };
-
-    function anaSayfayaDon() {
-        document.getElementById("yeniGirisAlan").classList.remove("hidden");
-        document.getElementById("oncekiGirislerAlan").classList.add("hidden");
-        document.getElementById("ayarlarAlan").classList.add("hidden");
-        document.getElementById("stokDuzenleAlan").classList.add("hidden");
-        document.getElementById("stokGrubu").selectedIndex = 0;
-        document.getElementById("urunSecim").style.display = "none";
-        document.getElementById("tabloAlan").style.display = "none";
-        document.getElementById("tabloAlan").innerHTML = "";
-        document.getElementById("mesaj").innerHTML = "";
-    }
-
-    // ============ STOK GRUBU ============
-    document.getElementById("stokGrubu").onchange = function() {
-        let grup = this.value;
-        let urunSelect = document.getElementById("urunKodu");
-        let urunSecimDiv = document.getElementById("urunSecim");
-        let tabloAlan = document.getElementById("tabloAlan");
-        if (!grup) { urunSecimDiv.style.display = "none"; tabloAlan.style.display = "none"; tabloAlan.innerHTML = ""; return; }
-        urunSecimDiv.style.display = "block";
-        urunSelect.innerHTML = "";
-        
-        let stokListesi;
-        if (grup === "HRD") {
-            stokListesi = tumStoklariGetir();
-        } else {
-            stokListesi = urunler[grup] || [];
-        }
-        
-        stokListesi.forEach(function(u) { 
-            let opt = document.createElement("option"); 
-            opt.value = u; 
-            opt.textContent = u + " - " + getStokIsmi(u); 
-            urunSelect.appendChild(opt); 
-        });
-        tabloAlan.style.display = "none"; tabloAlan.innerHTML = "";
-    };
-
-    document.getElementById("urunKodu").onchange = function() {
-        let secili = Array.from(this.selectedOptions).map(function(o) { return o.value; });
-        let tabloAlan = document.getElementById("tabloAlan");
-        if (secili.length === 0) { tabloAlan.style.display = "none"; tabloAlan.innerHTML = ""; return; }
-        let html = '<table><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';
-        secili.forEach(function(urun, idx) {
-            let weight = getPlakaWeight(urun);
-            let isim = getStokIsmi(urun);
-            let rid = "r" + Date.now() + idx;
-            html += '<tr id="' + rid + '">';
-            html += '<td>' + urun + '</td>';
-            html += '<td style="text-align:left; font-size:11px;">' + isim + '</td>';
-            html += '<td><input type="number" class="small-input" data-weight="' + weight + '" data-rid="' + rid + '" value="1" min="0" step="0.01"></td>';
-            html += '<td><input type="text" class="plaka-input" value="' + formatNumberDisplay(weight) + '" readonly></td>';
-            html += '<td><input type="text" class="toplam-input" value="' + formatNumberDisplay(weight) + '" readonly></td>';
-            html += '<td><input type="text" class="aciklama-input" placeholder="Açıklama" style="width:120px;"></td>';
-            html += '</tr>';
-        });
-        html += '</tbody></table>';
-        tabloAlan.innerHTML = html;
-        tabloAlan.style.display = "block";
-        
-        document.querySelectorAll('.small-input').forEach(function(inp) {
-            inp.oninput = function() {
-                let miktar = parseNumber(this.value);
-                let weight = parseNumber(this.dataset.weight);
-                let satir = document.getElementById(this.dataset.rid);
-                if (satir) { 
-                    let toplam = satir.querySelector('.toplam-input'); 
-                    if (toplam) {
-                        let sonuc = miktar * weight;
-                        toplam.value = formatNumberDisplay(sonuc);
-                    }
-                }
-            };
-        });
-    };
-
-    function kaydetVeGecmiseGit(yonlendir) {
-        let satirlar = document.querySelectorAll("#tabloAlan tbody tr");
-        if (satirlar.length === 0) { 
-            document.getElementById("mesaj").innerHTML = "<span class='error'>Lütfen en az bir ürün seçin!</span>"; 
-            return false; 
-        }
-        let grup = document.getElementById("stokGrubu").value;
-        if (!grup) { 
-            document.getElementById("mesaj").innerHTML = "<span class='error'>Lütfen stok grubu seçin!</span>"; 
-            return false; 
-        }
-        let mevcutSira = getSiraNo();
-        let kalemler = [];
-        satirlar.forEach(function(tr) {
-            let stokKodu = tr.cells[0] ? tr.cells[0].textContent.trim() : "";
-            let stokIsmi = tr.cells[1] ? tr.cells[1].textContent.trim() : "";
-            let miktarInput = tr.querySelector('.small-input');
-            let plakaInput = tr.querySelector('.plaka-input');
-            let toplamInput = tr.querySelector('.toplam-input');
-            let aciklamaInput = tr.querySelector('.aciklama-input');
-            
-            let miktar = miktarInput ? miktarInput.value : "0";
-            let plaka = plakaInput ? plakaInput.value : "0";
-            let toplam = toplamInput ? toplamInput.value : "0";
-            let aciklama = aciklamaInput ? aciklamaInput.value : "";
-            
-            miktar = formatNumber(parseNumber(miktar));
-            plaka = formatNumber(parseNumber(plaka));
-            toplam = formatNumber(parseNumber(toplam));
-            
-            kalemler.push({ 
-                "Stok Kodu": stokKodu, 
-                "Stok İsmi": stokIsmi, 
-                "Miktar": miktar, 
-                "1 Plaka (kg)": plaka, 
-                "Toplam Kg": toplam, 
-                "Açıklama": aciklama 
-            });
-        });
-        
-        let simdi = new Date();
-        let tarihStr = simdi.toLocaleDateString('tr-TR');
-        let saatStr = simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
-        let evrak = { 
-            "Seri No": SERI_NO, 
-            "Sıra No": mevcutSira, 
-            "Grup": grup, 
-            "Olusturan": aktifKullanici, 
-            "Duzenleyen": "", 
-            "Duzenlendi": false,
-            "DuzenlemeTarihi": "",
-            "Kayıt Tarihi": tarihStr,
-            "Kayıt Saati": saatStr,
-            "Kalemler": kalemler 
-        };
-        gecmisVeriler.push(evrak);
-        siranoArtir();
-        syncData();
-        document.getElementById("mesaj").innerHTML = "<span class='success'>✅ Evrak kaydedildi! Sıra No: " + mevcutSira + "</span>";
-        document.getElementById("tabloAlan").innerHTML = ""; 
-        document.getElementById("tabloAlan").style.display = "none";
-        document.getElementById("urunKodu").selectedIndex = -1; 
-        document.getElementById("stokGrubu").selectedIndex = 0;
-        document.getElementById("urunSecim").style.display = "none";
-        if (yonlendir) setTimeout(function() { gecmisListesiniGoster(); }, 800);
-        return true;
-    }
-    
-    document.getElementById("kaydetBtn").onclick = function() { kaydetVeGecmiseGit(false); };
-    document.getElementById("kayitSonrasiGecmisBtn").onclick = function() { kaydetVeGecmiseGit(true); };
-    document.getElementById("yeniGirisBtn").onclick = anaSayfayaDon;
-    document.getElementById("oncekiGirislerBtn").onclick = gecmisListesiniGoster;
-    document.getElementById("yeniKayitDonBtn").onclick = anaSayfayaDon;
-
-    // ============ STOK DÜZENLEME SAYFASI ============
-    document.getElementById("stokDuzenleBtn").onclick = function() {
-        if (aktifKullanici !== "Muhammed") {
-            alert("Bu sayfaya sadece Muhammed erişebilir!");
-            return;
-        }
-        stokDuzenleSayfasiniAc();
-    };
-
-    document.getElementById("stokDuzenleCikBtn").onclick = function() {
-        anaSayfayaDon();
-    };
-
-    function stokDuzenleSayfasiniAc() {
-        document.getElementById("yeniGirisAlan").classList.add("hidden");
-        document.getElementById("oncekiGirislerAlan").classList.add("hidden");
-        document.getElementById("ayarlarAlan").classList.add("hidden");
-        document.getElementById("stokDuzenleAlan").classList.remove("hidden");
-        document.getElementById("yeniStokKodu").value = "";
-        document.getElementById("yeniStokIsmi").value = "";
-        document.getElementById("yeniStokPlaka").value = "";
-        document.getElementById("stokEkleMesaj").innerHTML = "";
-        document.getElementById("stokArama").value = "";
-        stokListesiniGoster();
-    }
-
-    document.getElementById("stokEkleBtn").onclick = function() {
-        let grup = document.getElementById("yeniStokGrup").value;
-        let kod = document.getElementById("yeniStokKodu").value.trim();
-        let isim = document.getElementById("yeniStokIsmi").value.trim();
-        let plakaStr = document.getElementById("yeniStokPlaka").value.trim();
-        
-        if (!kod || !isim || !plakaStr) {
-            document.getElementById("stokEkleMesaj").innerHTML = "<span class='error'>Tüm alanları doldurun!</span>";
-            return;
-        }
-        
-        if (stokBilgileri[kod]) {
-            document.getElementById("stokEkleMesaj").innerHTML = "<span class='error'>Bu stok kodu zaten mevcut: " + kod + "</span>";
-            return;
-        }
-        
-        let plaka = parseNumber(plakaStr);
-        if (plaka <= 0) {
-            document.getElementById("stokEkleMesaj").innerHTML = "<span class='error'>Geçerli bir plaka kilosu girin!</span>";
-            return;
-        }
-        
-        stokBilgileri[kod] = isim;
-        plakaWeights[kod] = plaka;
-        stokGruplari[kod] = grup;
-        
-        stokBilgileriniKaydet();
-        
-        document.getElementById("yeniStokKodu").value = "";
-        document.getElementById("yeniStokIsmi").value = "";
-        document.getElementById("yeniStokPlaka").value = "";
-        document.getElementById("stokEkleMesaj").innerHTML = "<span class='success'>✅ Stok eklendi: " + kod + " - " + isim + " (Grup: " + grup + ", Plaka: " + formatNumberDisplay(plaka) + " kg)</span>";
-        stokListesiniGoster();
-    };
-
-    document.getElementById("stokArama").oninput = function() {
-        stokListesiniGoster(this.value);
-    };
-
-    function stokListesiniGoster(arama) {
-        let container = document.getElementById("stokListesi");
-        let tumKodlar = Object.keys(stokBilgileri).sort();
-        
-        if (arama) {
-            let aramaKucuk = arama.toLowerCase();
-            tumKodlar = tumKodlar.filter(function(kod) {
-                return kod.toLowerCase().includes(aramaKucuk) || 
-                       (stokBilgileri[kod] || "").toLowerCase().includes(aramaKucuk) ||
-                       (stokGruplari[kod] || "").toLowerCase().includes(aramaKucuk);
-            });
-        }
-        
-        if (tumKodlar.length === 0) {
-            container.innerHTML = "<p style='padding:20px;text-align:center;color:#999;'>Stok bulunamadı.</p>";
-            return;
-        }
-        
-        let html = '';
-        tumKodlar.forEach(function(kod) {
-            let isim = stokBilgileri[kod] || "";
-            let plaka = plakaWeights[kod] || 0;
-            let grup = stokGruplari[kod] || "Belirsiz";
-            html += '<div class="stok-card">';
-            html += '<span class="stok-kodu">' + kod + '</span>';
-            html += '<span class="stok-bilgi">' + isim + '</span>';
-            html += '<span class="stok-grup">' + grup + '</span>';
-            html += '<span class="stok-kilo">' + formatNumberDisplay(plaka) + ' kg</span>';
-            html += '<div class="btn-group">';
-            html += '<button class="btn btn-info btn-xs" onclick="stokDuzenleModalAc(\'' + kod + '\')">✏️ Düzenle</button>';
-            html += '<button class="btn btn-danger btn-xs" onclick="stokSil(\'' + kod + '\')">🗑️ Sil</button>';
-            html += '</div></div>';
-        });
-        container.innerHTML = html;
-    }
-
-    window.stokDuzenleModalAc = function(kod) {
-        duzenlenenStokKodu = kod;
-        document.getElementById("duzenleStokKodu").value = kod;
-        document.getElementById("duzenleStokIsmi").value = stokBilgileri[kod] || "";
-        document.getElementById("duzenleStokPlaka").value = formatNumberDisplay(plakaWeights[kod] || 0);
-        document.getElementById("duzenleStokGrup").value = stokGruplari[kod] || "430";
-        document.getElementById("stokDuzenleError").style.display = "none";
-        document.getElementById("stokDuzenleModal").style.display = "block";
-    };
-
-    document.getElementById("stokGuncelleBtn").onclick = function() {
-        let kod = duzenlenenStokKodu;
-        if (!kod) return;
-        
-        let yeniIsim = document.getElementById("duzenleStokIsmi").value.trim();
-        let yeniPlakaStr = document.getElementById("duzenleStokPlaka").value.trim();
-        let yeniGrup = document.getElementById("duzenleStokGrup").value;
-        
-        if (!yeniIsim || !yeniPlakaStr) {
-            document.getElementById("stokDuzenleError").style.display = "block";
-            document.getElementById("stokDuzenleError").textContent = "❌ Stok ismi ve plaka kilosu zorunludur!";
-            return;
-        }
-        
-        let yeniPlaka = parseNumber(yeniPlakaStr);
-        if (yeniPlaka <= 0) {
-            document.getElementById("stokDuzenleError").style.display = "block";
-            document.getElementById("stokDuzenleError").textContent = "❌ Geçerli bir plaka kilosu girin!";
-            return;
-        }
-        
-        stokBilgileri[kod] = yeniIsim;
-        plakaWeights[kod] = yeniPlaka;
-        stokGruplari[kod] = yeniGrup;
-        
-        stokBilgileriniKaydet();
-        
-        document.getElementById("stokDuzenleModal").style.display = "none";
-        duzenlenenStokKodu = null;
-        stokListesiniGoster(document.getElementById("stokArama").value);
-        document.getElementById("stokEkleMesaj").innerHTML = "<span class='success'>✅ Stok güncellendi: " + kod + "</span>";
-    };
-
-    window.stokSil = function(kod) {
-        if (!confirm(kod + " stok kodunu silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz ve bu stok koduna ait tüm veriler silinir!")) {
-            return;
-        }
-        
-        delete stokBilgileri[kod];
-        delete plakaWeights[kod];
-        delete stokGruplari[kod];
-        
-        stokBilgileriniKaydet();
-        
-        stokListesiniGoster(document.getElementById("stokArama").value);
-        document.getElementById("stokEkleMesaj").innerHTML = "<span class='success'>✅ Stok silindi: " + kod + "</span>";
-    };
-
-    // ============ ÖNCEKİ GİRİŞLER ============
-    function gecmisListesiniGoster() {
-        document.getElementById("yeniGirisAlan").classList.add("hidden");
-        document.getElementById("oncekiGirislerAlan").classList.remove("hidden");
-        document.getElementById("ayarlarAlan").classList.add("hidden");
-        document.getElementById("stokDuzenleAlan").classList.add("hidden");
-        
-        // Yetki bilgi alanı
-        let yetkiAlani = document.getElementById("yetkiBilgiAlani");
-        if (isStandartKullanici()) {
-            yetkiAlani.innerHTML = '<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Excel\'e aktarılmış evraklar kilitlidir. Sadece <strong>Muhammed</strong> düzenleyebilir ve silebilir.</div>';
-        } else if (isAdmin()) {
-            yetkiAlani.innerHTML = '<div class="kilitli-bilgi" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;"><span class="kilit-icon">👑</span> Admin yetkisi: Tüm evrakları düzenleyebilir ve silebilirsiniz.</div>';
-        } else {
-            yetkiAlani.innerHTML = '';
-        }
-        
-        gecmisVeriler = JSON.parse(localStorage.getItem("gecmisVeriler")) || [];
-        gecmisVeriler = gecmisVeriler.map(function(evrak) {
-            if (!evrak.Olusturan) evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
-            if (!evrak.hasOwnProperty("Duzenlendi")) evrak.Duzenlendi = false;
-            if (!evrak.hasOwnProperty("Duzenleyen")) evrak.Duzenleyen = "";
-            if (!evrak.hasOwnProperty("DuzenlemeTarihi")) evrak.DuzenlemeTarihi = "";
-            if (!evrak["Seri No"] || evrak["Seri No"] === "SAC1") evrak["Seri No"] = SERI_NO;
-            if (!evrak["Kayıt Tarihi"]) evrak["Kayıt Tarihi"] = "";
-            if (!evrak["Kayıt Saati"]) evrak["Kayıt Saati"] = "";
-            return evrak;
-        });
-        saveToLocal();
-        filteredVeriler = gecmisVeriler.slice();
-        currentPage = 1; 
-        seciliEvrakIndisleri.clear();
-        gecmisYukle();
-    }
-
-    function gecmisYukle() {
-        let container = document.getElementById("gecmisTablosu");
-        let kayitSayisiSpan = document.getElementById("kayitSayisi");
-        if (gecmisVeriler.length === 0) {
-            container.innerHTML = "<p style='padding:30px;text-align:center;color:#999;'>Henüz kayıt bulunmuyor.</p>";
-            kayitSayisiSpan.textContent = "Toplam: 0 evrak";
-            document.getElementById("paginationContainer").innerHTML = "";
-            document.getElementById("seciliSayi").textContent = "0"; 
-            return;
-        }
-        filtreUygula();
-        kayitSayisiSpan.textContent = "Toplam: " + gecmisVeriler.length + " evrak | Gösterilen: " + filteredVeriler.length;
-        let totalPages = Math.ceil(filteredVeriler.length / pageSize);
-        if (currentPage > totalPages && totalPages > 0) currentPage = totalPages;
-        if (currentPage < 1) currentPage = 1;
-        let start = (currentPage - 1) * pageSize;
-        let pageData = filteredVeriler.slice(start, start + pageSize);
-        
-        let html = '<table><thead><tr>';
-        html += '<th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox"></th>';
-        html += '<th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Düzenleme Tarihi</th><th>Durum</th><th>İşlem</th>';
-        html += '</tr></thead><tbody>';
-        
-        pageData.forEach(function(row) {
-            let globalIdx = gecmisVeriler.indexOf(row);
-            let checked = seciliEvrakIndisleri.has(globalIdx) ? 'checked' : '';
-            let durum = getDurum(row);
-            let durumClass = getDurumClass(durum);
-            let kayitTarihi = row["Kayıt Tarihi"] || "";
-            let kayitSaati = row["Kayıt Saati"] || "";
-            let duzenlemeTarihi = row["DuzenlemeTarihi"] || "-";
-            let kilitli = evrakKilitliMi(row);
-            let rowClass = kilitli ? 'kilitli' : '';
-            
-            html += '<tr data-globalidx="' + globalIdx + '" class="' + rowClass + '">';
-            html += '<td class="checkbox-col"><input type="checkbox" class="evrak-checkbox" data-idx="' + globalIdx + '" ' + checked + '></td>';
-            html += '<td>' + row["Seri No"] + '</td><td>' + row["Sıra No"] + '</td><td>' + row["Grup"] + '</td>';
-            html += '<td>' + (row["Olusturan"] || "") + '</td>';
-            html += '<td>' + kayitTarihi + '</td>';
-            html += '<td>' + kayitSaati + '</td>';
-            html += '<td class="duzenleme-tarihi">' + duzenlemeTarihi + '</td>';
-            html += '<td class="' + durumClass + '">' + durum + (kilitli ? ' 🔒' : '') + '</td>';
-            
-            // İşlem butonları - yetkiye göre disable
-            let duzenleDisable = !kullaniciEvragiDuzenleyebilirMi(row) ? 'disabled' : '';
-            let silDisable = !kullaniciEvragiSilebilirMi(row) ? 'disabled' : '';
-            let duzenleTitle = duzenleDisable ? 'title="Excel\'e aktarılmış evrak kilitli - Sadece Muhammed düzenleyebilir"' : '';
-            let silTitle = silDisable ? 'title="Excel\'e aktarılmış evrak kilitli - Sadece Muhammed silebilir"' : '';
-            
-            html += '<td>';
-            html += '<button class="btn btn-info btn-sm" onclick="detayGoster(' + globalIdx + ')" ' + duzenleDisable + ' ' + duzenleTitle + '>📄 Detay</button> ';
-            html += '<button class="btn btn-danger btn-sm" onclick="evrakSil(' + globalIdx + ')" ' + silDisable + ' ' + silTitle + '>🗑️ Sil</button>';
-            html += '</td>';
-            html += '</tr>';
-        });
-        html += '</tbody></table>'; 
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.evrak-checkbox').forEach(function(cb) {
-            cb.onchange = function() {
-                let idx = parseInt(this.dataset.idx);
-                if (this.checked) seciliEvrakIndisleri.add(idx); 
-                else seciliEvrakIndisleri.delete(idx);
-                document.getElementById("seciliSayi").textContent = seciliEvrakIndisleri.size;
-                let selectAll = document.getElementById("selectAllCheckbox");
-                if (selectAll) selectAll.checked = (seciliEvrakIndisleri.size === pageData.length && pageData.length > 0);
-            };
-        });
-        
-        let selectAllCb = document.getElementById("selectAllCheckbox");
-        if (selectAllCb) {
-            selectAllCb.onchange = function() {
-                let allCbs = document.querySelectorAll('.evrak-checkbox');
-                if (this.checked) { 
-                    allCbs.forEach(function(cb) { 
-                        cb.checked = true; 
-                        seciliEvrakIndisleri.add(parseInt(cb.dataset.idx)); 
-                    }); 
-                } else { 
-                    allCbs.forEach(function(cb) { 
-                        cb.checked = false; 
-                        seciliEvrakIndisleri.delete(parseInt(cb.dataset.idx)); 
-                    }); 
-                }
-                document.getElementById("seciliSayi").textContent = seciliEvrakIndisleri.size;
-            };
-        }
-        document.getElementById("seciliSayi").textContent = seciliEvrakIndisleri.size;
-        
-        let paginHtml = "";
-        if (totalPages > 1) {
-            paginHtml += '<button onclick="sayfaDegistir(1)" ' + (currentPage===1?'disabled':'') + '>⏮</button>';
-            paginHtml += '<button onclick="sayfaDegistir(' + (currentPage-1) + ')" ' + (currentPage===1?'disabled':'') + '>◀</button>';
-            paginHtml += '<span style="padding:6px 12px;">Sayfa ' + currentPage + '/' + totalPages + '</span>';
-            paginHtml += '<button onclick="sayfaDegistir(' + (currentPage+1) + ')" ' + (currentPage===totalPages?'disabled':'') + '>▶</button>';
-            paginHtml += '<button onclick="sayfaDegistir(' + totalPages + ')" ' + (currentPage===totalPages?'disabled':'') + '>⏭</button>';
-        }
-        document.getElementById("paginationContainer").innerHTML = paginHtml;
-        document.getElementById("gecmisMesaj").innerHTML = filteredVeriler.length > 0 ? "" : "<span style='color:orange;'>Filtreye uygun evrak bulunamadı.</span>";
-    }
-
-    function filtreUygula() {
-        let seri = document.getElementById("filtre_seri").value.toLowerCase();
-        let sira = document.getElementById("filtre_sira").value.toLowerCase();
-        let grup = document.getElementById("filtre_grup").value;
-        let durumFiltre = document.getElementById("filtre_durum").value;
-        filteredVeriler = gecmisVeriler.filter(function(row) {
-            if (seri && !row["Seri No"].toString().toLowerCase().includes(seri)) return false;
-            if (sira && !row["Sıra No"].toString().toLowerCase().includes(sira)) return false;
-            if (grup && row["Grup"] !== grup) return false;
-            if (durumFiltre) {
-                let durum = getDurum(row);
-                if (durumFiltre === "bekliyor" && !durum.includes("Bekliyor")) return false;
-                if (durumFiltre === "aktarildi" && !durum.includes("Aktarıldı")) return false;
-                if (durumFiltre === "duzenlendi" && !durum.includes("Düzenlendi")) return false;
-            }
-            return true;
-        });
-    }
-    
-    document.getElementById("filtreUygulaBtn").onclick = function() { 
-        currentPage = 1; 
-        seciliEvrakIndisleri.clear(); 
-        gecmisYukle(); 
-    };
-    
-    document.getElementById("filtreTemizleBtn").onclick = function() {
-        document.getElementById("filtre_seri").value = ""; 
-        document.getElementById("filtre_sira").value = "";
-        document.getElementById("filtre_grup").value = ""; 
-        document.getElementById("filtre_durum").value = "";
-        currentPage = 1; 
-        seciliEvrakIndisleri.clear(); 
-        gecmisYukle();
-    };
-    
-    window.sayfaDegistir = function(page) { 
-        currentPage = page; 
-        gecmisYukle(); 
-    };
-
-    // Excel Aktarma
-    document.getElementById("seciliExceleAktarBtn").onclick = function() {
-        if (seciliEvrakIndisleri.size === 0) { 
-            alert("Lütfen en az bir evrak seçin!"); 
-            return; 
-        }
-        let seciliEvraklar = [];
-        seciliEvrakIndisleri.forEach(function(idx) { 
-            if (gecmisVeriler[idx]) seciliEvraklar.push(gecmisVeriler[idx]); 
-        });
-        if (seciliEvraklar.length === 0) { 
-            alert("Seçili evrak bulunamadı!"); 
-            return; 
-        }
-        
-        // Aktarılan evrakları işaretle ve FIREBASE'E KAYDET
-        seciliEvraklar.forEach(function(evrak) { 
-            if (!aktarilanEvraklar.includes(evrak["Sıra No"])) {
-                aktarilanEvraklar.push(evrak["Sıra No"]); 
-            }
-        });
-        
-        syncData();
-        
-        // Excel oluşturma
-        let html = '<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th{background:#2c3e50;color:white;padding:8px}td{padding:8px;border:1px solid black}</style></head><body><table border="1">';
-        html += '<tr><th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Düzenleyen</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Düzenleme Tarihi</th><th>Durum</th><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr>';
-        
-        seciliEvraklar.forEach(function(evrak) {
-            let kalemler = evrak.Kalemler || [];
-            let durum = getDurum(evrak);
-            let duzenleyen = evrak["Duzenleyen"] || "";
-            let kayitTarihi = evrak["Kayıt Tarihi"] || "";
-            let kayitSaati = evrak["Kayıt Saati"] || "";
-            let duzenlemeTarihi = evrak["DuzenlemeTarihi"] || "";
-            if (kalemler.length === 0) {
-                html += '<tr><td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td><td>' + (evrak["Olusturan"]||"") + '</td><td>' + duzenleyen + '</td><td>' + kayitTarihi + '</td><td>' + kayitSaati + '</td><td>' + duzenlemeTarihi + '</td><td>' + durum + '</td><td colspan="6">-</td></tr>';
-            } else {
-                kalemler.forEach(function(k) {
-                    html += '<tr><td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td><td>' + (evrak["Olusturan"]||"") + '</td><td>' + duzenleyen + '</td><td>' + kayitTarihi + '</td><td>' + kayitSaati + '</td><td>' + duzenlemeTarihi + '</td><td>' + durum + '</td><td>' + (k["Stok Kodu"]||"") + '</td><td>' + (k["Stok İsmi"]||"") + '</td><td>' + formatNumberDisplay(k["Miktar"]) + '</td><td>' + formatNumberDisplay(k["1 Plaka (kg)"]) + '</td><td>' + formatNumberDisplay(k["Toplam Kg"]) + '</td><td>' + (k["Açıklama"]||"") + '</td></tr>';
-                });
-            }
-        });
-        html += '</table></body></html>';
-        let blob = new Blob([html], { type: 'application/vnd.ms-excel;charset=utf-8' });
-        let link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = "sac_kesim_" + new Date().toISOString().slice(0,10) + ".xls";
-        document.body.appendChild(link); 
-        link.click(); 
-        document.body.removeChild(link); 
-        URL.revokeObjectURL(link.href);
-        
-        filteredVeriler = gecmisVeriler.slice(); 
-        gecmisYukle();
-        alert(seciliEvraklar.length + " evrak Excel'e aktarıldı ve KİTLENDİ! ✅\n\n🔒 Bu evraklar artık sadece Muhammed tarafından düzenlenebilir/silinebilir.\n🔥 Firebase senkronize edildi - diğer bilgisayarlarda da kilitli olarak görünecek.");
-    };
-    
-    document.getElementById("tumunuSecBtn").onclick = function() {
-        document.querySelectorAll('.evrak-checkbox').forEach(function(cb) { 
-            cb.checked = true; 
-            seciliEvrakIndisleri.add(parseInt(cb.dataset.idx)); 
-        });
-        document.getElementById("seciliSayi").textContent = seciliEvrakIndisleri.size;
-        let s = document.getElementById("selectAllCheckbox"); 
-        if (s) s.checked = true;
-    };
-    
-    document.getElementById("secimiTemizleBtn").onclick = function() {
-        document.querySelectorAll('.evrak-checkbox').forEach(function(cb) { 
-            cb.checked = false; 
-            seciliEvrakIndisleri.delete(parseInt(cb.dataset.idx)); 
-        });
-        document.getElementById("seciliSayi").textContent = "0";
-        let s = document.getElementById("selectAllCheckbox"); 
-        if (s) s.checked = false;
-    };
-
-    // ============ DETAY VE DÜZENLEME ============
-    function stokSecenekleriniOlustur(grup, seciliStok) {
-        let options = '<option value="">-- Stok Seçin --</option>';
-        let stokListesi;
-        if (grup === "HRD") {
-            stokListesi = tumStoklariGetir();
-        } else {
-            stokListesi = urunler[grup] || [];
-        }
-        if (stokListesi) {
-            stokListesi.forEach(function(stok) {
-                let selected = stok === seciliStok ? 'selected' : '';
-                options += '<option value="' + stok + '" ' + selected + '>' + stok + ' - ' + getStokIsmi(stok) + '</option>';
-            });
-        }
-        return options;
-    }
-
-    window.detayGoster = function(idx) {
-        let row = gecmisVeriler[idx]; 
-        if (!row) return;
-        detayEditingIdx = idx;
-        
-        // Yetki kontrolü
-        let duzenleyebilir = kullaniciEvragiDuzenleyebilirMi(row);
-        let silebilir = kullaniciEvragiSilebilirMi(row);
-        let kilitli = evrakKilitliMi(row);
-        
-        // Kilit bilgisi
-        let kilitHtml = '';
-        if (kilitli && isStandartKullanici()) {
-            kilitHtml = '<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Bu evrak Excel\'e aktarılmış ve <strong>kilitlenmiştir</strong>. Sadece <strong>Muhammed</strong> düzenleyebilir ve silebilir.</div>';
-        } else if (kilitli && isAdmin()) {
-            kilitHtml = '<div class="kilitli-bilgi" style="background:#e8f5e9; border-color:#4caf50; color:#2e7d32;"><span class="kilit-icon">👑</span> Bu evrak Excel\'e aktarılmış. Admin yetkinizle düzenleyebilirsiniz.</div>';
-        }
-        document.getElementById("detayKilitBilgi").innerHTML = kilitHtml;
-        
-        let durum = getDurum(row);
-        let duzenleyen = row["Duzenleyen"] || "Yok";
-        let kayitTarihi = row["Kayıt Tarihi"] || "";
-        let kayitSaati = row["Kayıt Saati"] || "";
-        let duzenlemeTarihi = row["DuzenlemeTarihi"] || "Henüz düzenlenmedi";
-        let icerik = '<div class="detay-row"><span class="detay-label">Seri No:</span><span class="detay-value">' + row["Seri No"] + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Sıra No:</span><span class="detay-value">' + row["Sıra No"] + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Grup:</span><span class="detay-value">' + row["Grup"] + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Oluşturan:</span><span class="detay-value">' + (row["Olusturan"] || "") + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Düzenleyen:</span><span class="detay-value">' + duzenleyen + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Kayıt Tarihi:</span><span class="detay-value">' + kayitTarihi + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Kayıt Saati:</span><span class="detay-value">' + kayitSaati + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Düzenleme Tarihi:</span><span class="detay-value duzenleme-tarihi">' + duzenlemeTarihi + '</span></div>';
-        icerik += '<div class="detay-row"><span class="detay-label">Durum:</span><span class="detay-value ' + getDurumClass(durum) + '">' + durum + (kilitli ? ' 🔒' : '') + '</span></div>';
-        icerik += '<hr><h3>📦 Kalemler</h3>';
-        icerik += '<table style="width:100%"><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';
-        (row.Kalemler||[]).forEach(function(k) { 
-            icerik += '<tr><td>' + k["Stok Kodu"] + '</td><td style="text-align:left; font-size:11px;">' + (k["Stok İsmi"]||"") + '</td><td>' + formatNumberDisplay(k["Miktar"]) + '</td><td>' + formatNumberDisplay(k["1 Plaka (kg)"]) + '</td><td>' + formatNumberDisplay(k["Toplam Kg"]) + '</td><td>' + (k["Açıklama"]||"") + '</td></tr>'; 
-        });
-        icerik += '</tbody></table>';
-        document.getElementById("detayIcerik").innerHTML = icerik;
-        document.getElementById("detayDuzenlemeAlani").style.display = "none"; 
-        document.getElementById("detayDuzenlemeAlani").innerHTML = "";
-        
-        // Butonları yetkiye göre ayarla
-        document.getElementById("detayDuzenleBtn").disabled = !duzenleyebilir;
-        document.getElementById("detayDuzenleBtn").title = duzenleyebilir ? '' : 'Excel\'e aktarılmış evrak kilitli - Sadece Muhammed düzenleyebilir';
-        document.getElementById("detaySilBtn").disabled = !silebilir;
-        document.getElementById("detaySilBtn").title = silebilir ? '' : 'Excel\'e aktarılmış evrak kilitli - Sadece Muhammed silebilir';
-        
-        document.getElementById("detayDuzenleBtn").classList.remove("hidden"); 
-        document.getElementById("detayKaydetBtn").classList.add("hidden");
-        document.getElementById("detayModal").style.display = "block";
-    };
-    
-    document.getElementById("detayDuzenleBtn").onclick = function() {
-        let idx = detayEditingIdx;
-        if (idx === null || idx < 0 || idx >= gecmisVeriler.length) return;
-        let row = gecmisVeriler[idx];
-        
-        // Yetki kontrolü
-        if (!kullaniciEvragiDuzenleyebilirMi(row)) {
-            alert("🔒 Bu evrak Excel'e aktarılmış ve kilitlenmiştir!\n\nSadece Muhammed düzenleyebilir.");
-            return;
-        }
-        
-        duzenlemeModunuAc();
-    };
-    
-    function duzenlemeModunuAc() {
-        let idx = detayEditingIdx; 
-        let row = gecmisVeriler[idx]; 
-        if (!row) return;
-        let mevcutGrup = row["Grup"];
-        let grupSecenekler = "";
-        ["430","DKP","GALVANIZ","304","316","201","HRD"].forEach(function(g) { 
-            grupSecenekler += '<option value="' + g + '" ' + (mevcutGrup===g?"selected":"") + '>' + g + '</option>'; 
-        });
-        
-        let html = '<div class="detay-edit-section"><h3>✏️ Evrak Düzenleme (Düzenleyen: ' + aktifKullanici + ')</h3>';
-        html += '<div class="form-group"><label>Grup Değiştir:</label><select id="editGrup" onchange="grupDegisinceStoklariGuncelle()">' + grupSecenekler + '</select></div>';
-        html += '<div class="form-group"><label>Kalemler:</label>';
-        html += '<table class="edit-table"><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th><th>İşlem</th></tr></thead><tbody id="editKalemlerTbody">';
-        
-        (row.Kalemler||[]).forEach(function(k) {
-            html += '<tr class="edit-kalem-row">';
-            html += '<td><select class="stok-select kalem-stok-select" onchange="stokSecincePlakaGuncelle(this)">' + stokSecenekleriniOlustur(mevcutGrup, k["Stok Kodu"]) + '</select></td>';
-            html += '<td class="stok-isim" style="text-align:left; font-size:11px;">' + (k["Stok İsmi"]||getStokIsmi(k["Stok Kodu"])) + '</td>';
-            html += '<td><input type="number" class="miktar-input edit-miktar" value="' + formatNumberDisplay(k["Miktar"]||"0") + '" step="0.01" oninput="miktarDegisinceToplamGuncelle(this)"></td>';
-            html += '<td><input type="text" class="plaka-display edit-plaka" value="' + formatNumberDisplay(k["1 Plaka (kg)"]||"0") + '" readonly></td>';
-            html += '<td><input type="text" class="toplam-display edit-toplam" value="' + formatNumberDisplay(k["Toplam Kg"]||"0") + '" readonly></td>';
-            html += '<td><input type="text" class="edit-aciklama" value="' + (k["Açıklama"]||"") + '" placeholder="Açıklama"></td>';
-            html += '<td><button class="kalem-sil-btn" onclick="this.closest(\'tr\').remove()">🗑️</button></td>';
-            html += '</tr>';
-        });
-        html += '</tbody></table><button class="kalem-ekle-btn" id="kalemEkleBtn">➕ Yeni Kalem Ekle</button></div></div>';
-        
-        document.getElementById("detayDuzenlemeAlani").innerHTML = html;
-        document.getElementById("detayDuzenlemeAlani").style.display = "block";
-        document.getElementById("detayDuzenleBtn").classList.add("hidden");
-        document.getElementById("detayKaydetBtn").classList.remove("hidden");
-        
-        document.getElementById("kalemEkleBtn").onclick = function() { yeniKalemEkle(); };
-        document.querySelectorAll('.edit-miktar').forEach(function(inp) { 
-            inp.addEventListener('input', function() { miktarDegisinceToplamGuncelle(this); }); 
-        });
-        document.querySelectorAll('.kalem-stok-select').forEach(function(select) { 
-            select.addEventListener('change', function() { stokSecincePlakaGuncelle(this); }); 
-        });
-    }
-    
-    window.grupDegisinceStoklariGuncelle = function() {
-        let yeniGrup = document.getElementById("editGrup") ? document.getElementById("editGrup").value : "";
-        if (!yeniGrup) return;
-        document.querySelectorAll('.kalem-stok-select').forEach(function(select) {
-            let mevcutDeger = select.value;
-            select.innerHTML = stokSecenekleriniOlustur(yeniGrup, mevcutDeger);
-        });
-    };
-    
-    window.stokSecincePlakaGuncelle = function(selectElement) {
-        let stokKodu = selectElement.value;
-        let row = selectElement.closest('tr');
-        let plakaInput = row.querySelector('.edit-plaka');
-        let miktarInput = row.querySelector('.edit-miktar');
-        let toplamInput = row.querySelector('.edit-toplam');
-        let isimHucre = row.querySelector('.stok-isim');
-        let plaka = getPlakaWeight(stokKodu);
-        plakaInput.value = formatNumberDisplay(plaka);
-        if (isimHucre) isimHucre.textContent = getStokIsmi(stokKodu);
-        let miktar = parseNumber(miktarInput.value);
-        toplamInput.value = formatNumberDisplay(miktar * plaka);
-    };
-    
-    window.miktarDegisinceToplamGuncelle = function(inputElement) {
-        let row = inputElement.closest('tr');
-        let miktar = parseNumber(inputElement.value);
-        let plaka = parseNumber(row.querySelector('.edit-plaka').value);
-        row.querySelector('.edit-toplam').value = formatNumberDisplay(miktar * plaka);
-    };
-    
-    function yeniKalemEkle() {
-        let tbody = document.getElementById("editKalemlerTbody");
-        let suankiGrup = document.getElementById("editGrup") ? document.getElementById("editGrup").value : "430";
-        let row = document.createElement("tr"); 
-        row.className = "edit-kalem-row";
-        row.innerHTML = '<td><select class="stok-select kalem-stok-select" onchange="stokSecincePlakaGuncelle(this)">' + stokSecenekleriniOlustur(suankiGrup) + '</select></td>' +
-            '<td class="stok-isim" style="text-align:left; font-size:11px;"></td>' +
-            '<td><input type="number" class="miktar-input edit-miktar" value="0" step="0.01" oninput="miktarDegisinceToplamGuncelle(this)"></td>' +
-            '<td><input type="text" class="plaka-display edit-plaka" value="0" readonly></td>' +
-            '<td><input type="text" class="toplam-display edit-toplam" value="0" readonly></td>' +
-            '<td><input type="text" class="edit-aciklama" value="" placeholder="Açıklama"></td>' +
-            '<td><button class="kalem-sil-btn" onclick="this.closest(\'tr\').remove()">🗑️</button></td>';
-        tbody.appendChild(row);
-    }
-    
-    document.getElementById("detayKaydetBtn").onclick = function() {
-        let idx = detayEditingIdx; 
-        if (idx===null||idx<0||idx>=gecmisVeriler.length) return;
-        let row = gecmisVeriler[idx];
-        
-        // Yetki kontrolü
-        if (!kullaniciEvragiDuzenleyebilirMi(row)) {
-            alert("🔒 Bu evrak kilitli! Değişiklikler kaydedilemez.");
-            return;
-        }
-        
-        let yeniGrup = document.getElementById("editGrup") ? document.getElementById("editGrup").value : gecmisVeriler[idx]["Grup"];
-        let kalemRows = document.querySelectorAll("#editKalemlerTbody .edit-kalem-row");
-        let yeniKalemler = [];
-        kalemRows.forEach(function(row) {
-            let stokSelect = row.querySelector('.kalem-stok-select');
-            let stokKodu = stokSelect ? stokSelect.value : "";
-            let stokIsmi = row.querySelector('.stok-isim') ? row.querySelector('.stok-isim').textContent : getStokIsmi(stokKodu);
-            let miktar = row.querySelector('.edit-miktar') ? row.querySelector('.edit-miktar').value : "0";
-            let plaka = row.querySelector('.edit-plaka') ? row.querySelector('.edit-plaka').value : "0";
-            let toplam = row.querySelector('.edit-toplam') ? row.querySelector('.edit-toplam').value : "0";
-            let aciklama = row.querySelector('.edit-aciklama') ? row.querySelector('.edit-aciklama').value : "";
-            if (stokKodu && stokKodu.trim()) {
-                yeniKalemler.push({
-                    "Stok Kodu": stokKodu, 
-                    "Stok İsmi": stokIsmi, 
-                    "Miktar": formatNumber(miktar), 
-                    "1 Plaka (kg)": formatNumber(plaka), 
-                    "Toplam Kg": formatNumber(toplam), 
-                    "Açıklama": aciklama
-                });
-            }
-        });
-        if (yeniKalemler.length === 0) { alert("En az bir kalem olmalıdır!"); return; }
-        gecmisVeriler[idx]["Grup"] = yeniGrup;
-        gecmisVeriler[idx]["Kalemler"] = yeniKalemler;
-        gecmisVeriler[idx]["Duzenlendi"] = true;
-        gecmisVeriler[idx]["Duzenleyen"] = aktifKullanici;
-        
-        let simdi = new Date();
-        gecmisVeriler[idx]["DuzenlemeTarihi"] = simdi.toLocaleDateString('tr-TR') + " " + simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        
-        syncData();
-        alert("✅ Değişiklikler kaydedildi! Düzenleyen: " + aktifKullanici + "\nDüzenleme Tarihi: " + gecmisVeriler[idx]["DuzenlemeTarihi"]);
-        document.getElementById("detayModal").style.display = "none";
-        filteredVeriler = gecmisVeriler.slice(); 
-        gecmisYukle();
-    };
-    
-    document.getElementById("detaySilBtn").onclick = function() {
-        if (detayEditingIdx !== null && detayEditingIdx >= 0) {
-            let row = gecmisVeriler[detayEditingIdx];
-            
-            // Yetki kontrolü
-            if (!kullaniciEvragiSilebilirMi(row)) {
-                alert("🔒 Bu evrak Excel'e aktarılmış ve kilitlenmiştir!\n\nSadece Muhammed silebilir.");
-                return;
-            }
-            
-            document.getElementById("detayModal").style.display = "none";
-            if (confirm("Bu evrakı silmek istediğinize emin misiniz?")) {
-                evrakSilOnaylandi(detayEditingIdx);
-            }
-        }
-    };
-    
-    window.evrakSil = function(idx) {
-        let row = gecmisVeriler[idx];
-        if (!row) return;
-        
-        // Yetki kontrolü
-        if (!kullaniciEvragiSilebilirMi(row)) {
-            alert("🔒 Bu evrak Excel'e aktarılmış ve kilitlenmiştir!\n\nSadece Muhammed silebilir.");
-            return;
-        }
-        
-        if (confirm("Bu evrakı silmek istediğinize emin misiniz?")) {
-            evrakSilOnaylandi(idx);
-        }
-    };
-    
-    function evrakSilOnaylandi(idx) {
-        let silinenEvrak = JSON.parse(JSON.stringify(gecmisVeriler[idx]));
-        silinenEvrak["SilinmeTarihi"] = new Date().toLocaleString('tr-TR');
-        silinenEvrak["SilenKullanici"] = aktifKullanici;
-        silinenEvraklarArsivi.push(silinenEvrak);
-        saveToLocal();
-        syncData();
-        
-        let silinenSira = gecmisVeriler[idx]["Sıra No"];
-        gecmisVeriler.splice(idx,1);
-        if (!silinenSiralar.includes(silinenSira)) { silinenSiralar.push(silinenSira); }
-        aktarilanEvraklar = aktarilanEvraklar.filter(function(s) { return s !== silinenSira; });
-        syncData();
-        seciliEvrakIndisleri.clear(); 
-        filteredVeriler = gecmisVeriler.slice(); 
-        gecmisYukle();
-        document.getElementById("gecmisMesaj").innerHTML = "<span class='success'>✅ Evrak silindi ve arşive taşındı.</span>";
-        setTimeout(function() { 
-            if(document.getElementById("gecmisMesaj").innerHTML.includes("✅")) 
-                document.getElementById("gecmisMesaj").innerHTML = ""; 
-        }, 3000);
-    }
-
-    // ============ AYARLAR ============
-    document.getElementById("ayarlarBtn").onclick = function() {
-        if (!ayarlarAdminOnaylandi) {
-            adminYetkisiIste('ayarlarGiris', null, 'Ayarlar sayfasına giriş için admin yetkisi gereklidir.');
-        } else {
-            ayarlarSayfasiniAc();
-        }
-    };
-    
-    document.getElementById("adminOnayBtn").onclick = function() {
-        let adminUser = document.getElementById("adminUsername").value.trim();
-        let adminPass = document.getElementById("adminPassword").value.trim();
-        if (adminBilgileri[adminUser] && adminBilgileri[adminUser] === adminPass) {
-            document.getElementById("adminModal").style.display = "none";
-            
-            if(bekleyenIslem === 'ayarlarGiris') {
-                ayarlarAdminOnaylandi = true;
-                ayarlarSayfasiniAc();
-            }
-            bekleyenIslem = null; 
-            bekleyenIdx = null;
-        } else {
-            document.getElementById("adminError").style.display = "block";
-            document.getElementById("adminError").textContent = "❌ Admin kullanıcı adı veya şifre hatalı!";
-            document.getElementById("adminPassword").value = "";
-        }
-    };
-    
-    function ayarlarSayfasiniAc() {
-        document.getElementById("yeniGirisAlan").classList.add("hidden");
-        document.getElementById("oncekiGirislerAlan").classList.add("hidden");
-        document.getElementById("stokDuzenleAlan").classList.add("hidden");
-        document.getElementById("ayarlarAlan").classList.remove("hidden");
-        kullaniciListesiniGoster();
-        silinenEvraklariGoster();
-    }
-    
-    document.getElementById("ayarlardanCikBtn").onclick = function() {
-        ayarlarAdminOnaylandi = false;
-        anaSayfayaDon();
-    };
-
-    function kullaniciListesiniGoster() {
-        let html = '<h4>Mevcut Kullanıcılar</h4>';
-        Object.keys(kullanicilar).forEach(function(k) {
-            let isAdminUser = adminKullanicilar.includes(k);
-            let rolBadge = isAdminUser ? '<span class="kullanici-rol admin">Admin</span>' : '<span class="kullanici-rol kullanici">Kullanıcı</span>';
-            html += '<div class="kullanici-card">';
-            html += '<span>👤 ' + k + rolBadge + '</span>';
-            html += '<div class="btn-group">';
-            html += '<button class="btn btn-info btn-xs" onclick="kullaniciDuzenle(\'' + k + '\')">✏️ Düzenle</button>';
-            html += '<button class="btn btn-danger btn-xs" onclick="kullaniciSil(\'' + k + '\')">🗑️ Sil</button>';
-            html += '</div></div>';
-        });
-        document.getElementById("kullaniciListesi").innerHTML = html;
-    }
-    
-    document.getElementById("kullaniciEkleBtn").onclick = function() {
-        let yeniAd = document.getElementById("yeniKullaniciAdi").value.trim();
-        let yeniSifre = document.getElementById("yeniKullaniciSifre").value.trim();
-        if (!yeniAd || !yeniSifre) {
-            document.getElementById("kullaniciMesaj").innerHTML = "<span class='error'>Kullanıcı adı ve şifre gerekli!</span>";
-            return;
-        }
-        if (kullanicilar[yeniAd]) {
-            document.getElementById("kullaniciMesaj").innerHTML = "<span class='error'>Bu kullanıcı adı zaten mevcut!</span>";
-            return;
-        }
-        kullanicilar[yeniAd] = yeniSifre;
-        syncData();
-        document.getElementById("yeniKullaniciAdi").value = "";
-        document.getElementById("yeniKullaniciSifre").value = "";
-        document.getElementById("kullaniciMesaj").innerHTML = "<span class='success'>✅ Kullanıcı eklendi: " + yeniAd + " (Standart kullanıcı)</span>";
-        kullaniciListesiniGoster();
-    };
-    
-    window.kullaniciSil = function(kullaniciAdi) {
-        if (kullaniciAdi === aktifKullanici) { alert("Kendinizi silemezsiniz!"); return; }
-        if (adminKullanicilar.includes(kullaniciAdi)) { alert("Admin kullanıcılar silinemez!"); return; }
-        if (Object.keys(kullanicilar).length <= 2) { alert("En az 2 kullanıcı kalmalıdır!"); return; }
-        if (confirm(kullaniciAdi + " kullanıcısını silmek istediğinize emin misiniz?")) {
-            delete kullanicilar[kullaniciAdi];
-            syncData();
-            kullaniciListesiniGoster();
-            document.getElementById("kullaniciMesaj").innerHTML = "<span class='success'>✅ Kullanıcı silindi: " + kullaniciAdi + "</span>";
-        }
-    };
-    
-    window.kullaniciDuzenle = function(kullaniciAdi) {
-        duzenlenenKullanici = kullaniciAdi;
-        document.getElementById("duzenlenenKullaniciAdi").textContent = kullaniciAdi;
-        document.getElementById("eskiSifreKontrol").value = "";
-        document.getElementById("yeniKullaniciAdiInput").value = "";
-        document.getElementById("yeniSifreInput").value = "";
-        document.getElementById("kullaniciDuzenleError").style.display = "none";
-        document.getElementById("kullaniciDuzenleModal").style.display = "block";
-    };
-    
-    document.getElementById("kullaniciGuncelleBtn").onclick = function() {
-        let eskiSifre = document.getElementById("eskiSifreKontrol").value.trim();
-        let yeniAd = document.getElementById("yeniKullaniciAdiInput").value.trim();
-        let yeniSifre = document.getElementById("yeniSifreInput").value.trim();
-        
-        if (!eskiSifre) {
-            document.getElementById("kullaniciDuzenleError").style.display = "block";
-            document.getElementById("kullaniciDuzenleError").textContent = "❌ Mevcut şifrenizi girmelisiniz!";
-            return;
-        }
-        if (kullanicilar[duzenlenenKullanici] !== eskiSifre) {
-            document.getElementById("kullaniciDuzenleError").style.display = "block";
-            document.getElementById("kullaniciDuzenleError").textContent = "❌ Mevcut şifre hatalı!";
-            return;
-        }
-        if (!yeniAd && !yeniSifre) {
-            document.getElementById("kullaniciDuzenleError").style.display = "block";
-            document.getElementById("kullaniciDuzenleError").textContent = "❌ En az bir değişiklik yapmalısınız!";
-            return;
-        }
-        if (yeniAd && yeniAd !== duzenlenenKullanici && kullanicilar[yeniAd]) {
-            document.getElementById("kullaniciDuzenleError").style.display = "block";
-            document.getElementById("kullaniciDuzenleError").textContent = "❌ Bu kullanıcı adı zaten kullanılıyor!";
-            return;
-        }
-        
-        if (yeniAd && yeniAd !== duzenlenenKullanici) {
-            kullanicilar[yeniAd] = yeniSifre || kullanicilar[duzenlenenKullanici];
-            delete kullanicilar[duzenlenenKullanici];
-            if (aktifKullanici === duzenlenenKullanici) {
-                aktifKullanici = yeniAd;
-                document.getElementById("currentUser").textContent = yeniAd;
-                kullaniciRolGuncelle();
-                stokDuzenleButonKontrol();
-            }
-        } else if (yeniSifre) {
-            kullanicilar[duzenlenenKullanici] = yeniSifre;
-        }
-        
-        syncData();
-        document.getElementById("kullaniciDuzenleModal").style.display = "none";
-        kullaniciListesiniGoster();
-        document.getElementById("kullaniciMesaj").innerHTML = "<span class='success'>✅ Kullanıcı güncellendi!</span>";
-    };
-
-    function silinenEvraklariGoster() {
-        let container = document.getElementById("silinenEvraklarTablosu");
-        if (silinenEvraklarArsivi.length === 0) {
-            container.innerHTML = "<p style='padding:20px;text-align:center;color:#999;'>Silinen evrak bulunmuyor.</p>";
-            return;
-        }
-        let html = '<table><thead><tr><th>Seç</th><th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Silen</th><th>Silinme Tarihi</th><th>Kalem</th></tr></thead><tbody>';
-        silinenEvraklarArsivi.forEach(function(evrak, idx) {
-            let kalemSayisi = evrak.Kalemler ? evrak.Kalemler.length : 0;
-            html += '<tr class="' + (seciliSilinenIdx === idx ? 'selected' : '') + '" onclick="silinenEvrakSec(' + idx + ')" style="cursor:pointer;">';
-            html += '<td><input type="radio" name="silinenSec" ' + (seciliSilinenIdx === idx ? 'checked' : '') + '></td>';
-            html += '<td>' + evrak["Seri No"] + '</td><td>' + evrak["Sıra No"] + '</td><td>' + evrak["Grup"] + '</td>';
-            html += '<td>' + (evrak["Olusturan"] || evrak["Kullanıcı"] || "") + '</td>';
-            html += '<td>' + (evrak["SilenKullanici"] || "") + '</td>';
-            html += '<td>' + (evrak["SilinmeTarihi"] || "") + '</td>';
-            html += '<td>' + kalemSayisi + '</td></tr>';
-        });
-        html += '</tbody></table>';
-        container.innerHTML = html;
-    }
-    
-    window.silinenEvrakSec = function(idx) {
-        seciliSilinenIdx = idx;
-        silinenEvraklariGoster();
-    };
-    
-    document.getElementById("silinenleriTemizleBtn").onclick = function() {
-        if (silinenEvraklarArsivi.length === 0) { alert("Silinen evrak bulunmuyor!"); return; }
-        if (confirm("Tüm silinen evraklar kalıcı olarak silinecek! Emin misiniz?")) {
-            silinenEvraklarArsivi = [];
-            syncData();
-            seciliSilinenIdx = null;
-            silinenEvraklariGoster();
-            document.getElementById("silinenMesaj").innerHTML = "<span class='success'>✅ Tüm silinen evraklar kalıcı olarak silindi.</span>";
-        }
-    };
-    
-    document.getElementById("silineniGeriYukleBtn").onclick = function() {
-        if (seciliSilinenIdx === null || seciliSilinenIdx >= silinenEvraklarArsivi.length) {
-            alert("Lütfen geri yüklemek için bir evrak seçin!");
-            return;
-        }
-        let geriYuklenecek = silinenEvraklarArsivi[seciliSilinenIdx];
-        if (confirm(geriYuklenecek["Sıra No"] + " sıra nolu evrak geri yüklensin mi?")) {
-            silinenSiralar = silinenSiralar.filter(function(s) { return s !== geriYuklenecek["Sıra No"]; });
-            delete geriYuklenecek["SilinmeTarihi"];
-            delete geriYuklenecek["SilenKullanici"];
-            gecmisVeriler.push(geriYuklenecek);
-            silinenEvraklarArsivi.splice(seciliSilinenIdx, 1);
-            syncData();
-            seciliSilinenIdx = null;
-            silinenEvraklariGoster();
-            document.getElementById("silinenMesaj").innerHTML = "<span class='success'>✅ Evrak geri yüklendi!</span>";
-        }
-    };
-
-    window.kapatModal = function(id) { 
-        document.getElementById(id).style.display = "none";
-        if (id==='adminModal') { bekleyenIslem = null; bekleyenIdx = null; }
-        if (id==='detayModal') { detayEditingIdx = null; }
-        if (id==='kullaniciDuzenleModal') { duzenlenenKullanici = null; }
-        if (id==='stokDuzenleModal') { duzenlenenStokKodu = null; }
-    };
-    
-    window.onclick = function(e) { 
-        if (e.target.classList.contains('modal')) e.target.style.display = "none"; 
-    };
-    
-    document.addEventListener('keydown', function(e) { 
-        if (e.key==='Escape') {
-            document.querySelectorAll('.modal').forEach(function(m) { m.style.display = 'none'; });
-        }
+// ============ 🔥🔥🔥 EXCEL AKTARMA - KESİN ÇÖZÜM ============
+document.getElementById("seciliExceleAktarBtn").onclick=function(){
+    if(seciliEvrakIndisleri.size===0){alert("Lütfen en az bir evrak seçin!");return;}
+    var se=[];seciliEvrakIndisleri.forEach(i=>{if(gecmisVeriler[i])se.push(gecmisVeriler[i]);});if(se.length===0){alert("Seçili evrak bulunamadı!");return;}
+    // 1. aktarilanEvraklar'ı güncelle
+    se.forEach(e=>{var sn=e["Sıra No"];if(!aktarilanEvraklar.includes(sn))aktarilanEvraklar.push(sn);});
+    console.log("📎 Aktarılıyor:",aktarilanEvraklar.length,aktarilanEvraklar);
+    // 2. localStorage'a kaydet
+    saveToLocal();
+    // 3. Firebase'e kaydet ve BEKLE
+    saveToFirebase().then(()=>{
+        console.log("✅ Firebase OK - sayfa güncelleniyor");
+        // 4. SAYFAYI HEMEN GÜNCELLE
+        filteredVeriler=gecmisVeriler.slice();filtreUygula();filteredVeriler=sortData(filteredVeriler,currentSortColumn,currentSortDirection);currentPage=1;gecmisYukle();
+        // 5. Excel oluştur
+        var h='<html><head><meta charset="UTF-8"><style>table{border-collapse:collapse}th{background:#2c3e50;color:white;padding:8px}td{padding:8px;border:1px solid black}</style></head><body><table border="1"><tr><th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Düzenleyen</th><th>Kayıt Tarihi</th><th>Kayıt Saati</th><th>Düzenleme Tarihi</th><th>Durum</th><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr>';
+        se.forEach(e=>{var k=e.Kalemler||[],d=getDurum(e),dy=e["Duzenleyen"]||"",kt=e["Kayıt Tarihi"]||"",ks=e["Kayıt Saati"]||"",dt=e["DuzenlemeTarihi"]||"";if(k.length===0)h+=`<tr><td>${e["Seri No"]}</td><td>${e["Sıra No"]}</td><td>${e["Grup"]}</td><td>${e["Olusturan"]||""}</td><td>${dy}</td><td>${kt}</td><td>${ks}</td><td>${dt}</td><td>${d}</td><td colspan="6">-</td></tr>`;else k.forEach(kk=>{h+=`<tr><td>${e["Seri No"]}</td><td>${e["Sıra No"]}</td><td>${e["Grup"]}</td><td>${e["Olusturan"]||""}</td><td>${dy}</td><td>${kt}</td><td>${ks}</td><td>${dt}</td><td>${d}</td><td>${kk["Stok Kodu"]||""}</td><td>${kk["Stok İsmi"]||""}</td><td>${formatNumberDisplay(kk["Miktar"])}</td><td>${formatNumberDisplay(kk["1 Plaka (kg)"])}</td><td>${formatNumberDisplay(kk["Toplam Kg"])}</td><td>${kk["Açıklama"]||""}</td></tr>`;});});h+='</table></body></html>';
+        var b=new Blob([h],{type:'application/vnd.ms-excel;charset=utf-8'}),l=document.createElement("a");l.href=URL.createObjectURL(b);l.download="sac_kesim_"+new Date().toISOString().slice(0,10)+".xls";document.body.appendChild(l);l.click();document.body.removeChild(l);URL.revokeObjectURL(l.href);
+        alert(se.length+" evrak Excel'e aktarıldı ve KİTLENDİ! ✅\n\n🔒 Durum anında 'Excel'e Aktarıldı' olarak güncellendi.\n🔥 Firebase senkronize edildi - yarın da böyle görünecek!");
     });
-    
-    console.log("✅ Sac Kesim Takip Sistemi - Firebase Destekli Başladı!");
-    console.log("🔐 Admin: admin / sena2003 (SADECE AYARLAR İÇİN)");
-    console.log("👑 Admin Kullanıcı: Muhammed / muhammed123 (Tam yetki)");
-    console.log("👤 Standart Kullanıcılar: SAC1/sac1sac, SAC2/2sac2, SAC3/sac3sac, SAC4/4sac4");
-    console.log("🔒 Güvenlik: Excel'e aktarılan evraklar standart kullanıcılar için kilitlenir");
-    console.log("📋 Seri No: SD");
-    console.log("🔥 Firebase Veritabanı: sackesim-5e216");
+};
+document.getElementById("tumunuSecBtn").onclick=function(){document.querySelectorAll('.evrak-checkbox').forEach(c=>{c.checked=true;seciliEvrakIndisleri.add(parseInt(c.dataset.idx));});document.getElementById("seciliSayi").textContent=seciliEvrakIndisleri.size;};
+document.getElementById("secimiTemizleBtn").onclick=function(){document.querySelectorAll('.evrak-checkbox').forEach(c=>{c.checked=false;seciliEvrakIndisleri.delete(parseInt(c.dataset.idx));});document.getElementById("seciliSayi").textContent="0";};
+
+// ============ DETAY ============
+function stokSecenekleriniOlustur(g,sk){var o='<option value="">-- Stok Seçin --</option>',sl=g==="HRD"?tumStoklariGetir():(urunler[g]||[]);if(sl)sl.forEach(s=>{o+=`<option value="${s}"${s===sk?' selected':''}>${s} - ${getStokIsmi(s)}</option>`;});return o;}
+window.detayGoster=function(i){var r=gecmisVeriler[i];if(!r)return;detayEditingIdx=i;var db=kullaniciEvragiDuzenleyebilirMi(r),sb=kullaniciEvragiSilebilirMi(r),kl=evrakKilitliMi(r),kh='';if(kl&&isStandartKullanici())kh='<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Bu evrak kilitli. Sadece <strong>Muhammed & Burak</strong> düzenleyebilir.</div>';else if(kl&&isAdmin())kh='<div class="kilitli-bilgi" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32;"><span class="kilit-icon">👑</span> Admin yetkinizle düzenleyebilirsiniz.</div>';document.getElementById("detayKilitBilgi").innerHTML=kh;var du=getDurum(r),dy=r["Duzenleyen"]||"Yok",kt=r["Kayıt Tarihi"]||"",ks=r["Kayıt Saati"]||"",dt=r["DuzenlemeTarihi"]||"Henüz düzenlenmedi",ic='';ic+=`<div class="detay-row"><span class="detay-label">Seri No:</span><span class="detay-value">${r["Seri No"]}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Sıra No:</span><span class="detay-value">${r["Sıra No"]}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Grup:</span><span class="detay-value">${r["Grup"]}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Oluşturan:</span><span class="detay-value">${r["Olusturan"]||""}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Düzenleyen:</span><span class="detay-value">${dy}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Kayıt Tarihi:</span><span class="detay-value">${kt}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Kayıt Saati:</span><span class="detay-value">${ks}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Düzenleme Tarihi:</span><span class="detay-value duzenleme-tarihi">${dt}</span></div>`;ic+=`<div class="detay-row"><span class="detay-label">Durum:</span><span class="detay-value ${getDurumClass(du)}">${du}${kl?' 🔒':''}</span></div>`;ic+='<hr><h3>📦 Kalemler</h3><table style="width:100%"><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';(r.Kalemler||[]).forEach(k=>{ic+=`<tr><td>${k["Stok Kodu"]}</td><td style="text-align:left;font-size:11px;">${k["Stok İsmi"]||""}</td><td>${formatNumberDisplay(k["Miktar"])}</td><td>${formatNumberDisplay(k["1 Plaka (kg)"])}</td><td>${formatNumberDisplay(k["Toplam Kg"])}</td><td>${k["Açıklama"]||""}</td></tr>`;});ic+='</tbody></table>';document.getElementById("detayIcerik").innerHTML=ic;document.getElementById("detayDuzenlemeAlani").style.display="none";document.getElementById("detayDuzenleBtn").disabled=!db;document.getElementById("detaySilBtn").disabled=!sb;document.getElementById("detayDuzenleBtn").classList.remove("hidden");document.getElementById("detayKaydetBtn").classList.add("hidden");document.getElementById("detayModal").style.display="block";};
+document.getElementById("detayDuzenleBtn").onclick=function(){var i=detayEditingIdx,r=gecmisVeriler[i];if(!r||!kullaniciEvragiDuzenleyebilirMi(r)){alert("🔒 Kilitli!");return;}duzenlemeModunuAc();};
+function duzenlemeModunuAc(){var i=detayEditingIdx,r=gecmisVeriler[i];if(!r)return;var mg=r["Grup"],gs="";["430","DKP","GALVANIZ","304","316","201","HRD"].forEach(g=>{gs+=`<option value="${g}"${mg===g?" selected":""}>${g}</option>`;});var h=`<div class="detay-edit-section"><h3>✏️ Evrak Düzenleme (${aktifKullanici})</h3><div class="form-group"><label>Grup:</label><select id="editGrup" onchange="grupDegisinceStoklariGuncelle()">${gs}</select></div><table class="edit-table"><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th><th>İşlem</th></tr></thead><tbody id="editKalemlerTbody">`;(r.Kalemler||[]).forEach(k=>{h+=`<tr class="edit-kalem-row"><td><select class="stok-select kalem-stok-select" onchange="stokSecincePlakaGuncelle(this)">${stokSecenekleriniOlustur(mg,k["Stok Kodu"])}</select></td><td class="stok-isim" style="text-align:left;font-size:11px;">${k["Stok İsmi"]||getStokIsmi(k["Stok Kodu"])}</td><td><input type="number" class="miktar-input edit-miktar" value="${formatNumberDisplay(k["Miktar"]||"0")}" step="0.01" oninput="miktarDegisinceToplamGuncelle(this)"></td><td><input type="text" class="plaka-display edit-plaka" value="${formatNumberDisplay(k["1 Plaka (kg)"]||"0")}" readonly></td><td><input type="text" class="toplam-display edit-toplam" value="${formatNumberDisplay(k["Toplam Kg"]||"0")}" readonly></td><td><input type="text" class="edit-aciklama" value="${k["Açıklama"]||""}" placeholder="Açıklama"></td><td><button class="kalem-sil-btn" onclick="this.closest('tr').remove()">🗑️</button></td></tr>`;});h+='</tbody></table><button class="kalem-ekle-btn" id="kalemEkleBtn">➕ Yeni Kalem Ekle</button></div>';document.getElementById("detayDuzenlemeAlani").innerHTML=h;document.getElementById("detayDuzenlemeAlani").style.display="block";document.getElementById("detayDuzenleBtn").classList.add("hidden");document.getElementById("detayKaydetBtn").classList.remove("hidden");document.getElementById("kalemEkleBtn").onclick=function(){yeniKalemEkle();};}
+window.grupDegisinceStoklariGuncelle=function(){var yg=document.getElementById("editGrup")?document.getElementById("editGrup").value:"";if(!yg)return;document.querySelectorAll('.kalem-stok-select').forEach(s=>{var md=s.value;s.innerHTML=stokSecenekleriniOlustur(yg,md);});};
+window.stokSecincePlakaGuncelle=function(se){var sk=se.value,r=se.closest('tr'),pi=r.querySelector('.edit-plaka'),mi=r.querySelector('.edit-miktar'),ti=r.querySelector('.edit-toplam'),ih=r.querySelector('.stok-isim'),p=getPlakaWeight(sk);pi.value=formatNumberDisplay(p);if(ih)ih.textContent=getStokIsmi(sk);ti.value=formatNumberDisplay(parseNumber(mi.value)*p);};
+window.miktarDegisinceToplamGuncelle=function(ie){var r=ie.closest('tr'),m=parseNumber(ie.value),p=parseNumber(r.querySelector('.edit-plaka').value);r.querySelector('.edit-toplam').value=formatNumberDisplay(m*p);};
+function yeniKalemEkle(){var tb=document.getElementById("editKalemlerTbody"),sg=document.getElementById("editGrup")?document.getElementById("editGrup").value:"430",r=document.createElement("tr");r.className="edit-kalem-row";r.innerHTML=`<td><select class="stok-select kalem-stok-select" onchange="stokSecincePlakaGuncelle(this)">${stokSecenekleriniOlustur(sg)}</select></td><td class="stok-isim" style="text-align:left;font-size:11px;"></td><td><input type="number" class="miktar-input edit-miktar" value="0" step="0.01" oninput="miktarDegisinceToplamGuncelle(this)"></td><td><input type="text" class="plaka-display edit-plaka" value="0" readonly></td><td><input type="text" class="toplam-display edit-toplam" value="0" readonly></td><td><input type="text" class="edit-aciklama" value="" placeholder="Açıklama"></td><td><button class="kalem-sil-btn" onclick="this.closest('tr').remove()">🗑️</button></td>`;tb.appendChild(r);}
+document.getElementById("detayKaydetBtn").onclick=function(){var i=detayEditingIdx,r=gecmisVeriler[i];if(i===null||!r||!kullaniciEvragiDuzenleyebilirMi(r)){alert("🔒 Kaydedilemez!");return;}var yg=document.getElementById("editGrup")?document.getElementById("editGrup").value:r["Grup"],krs=document.querySelectorAll("#editKalemlerTbody .edit-kalem-row"),yk=[];krs.forEach(kr=>{var ss=kr.querySelector('.kalem-stok-select'),sk=ss?ss.value:"",si=kr.querySelector('.stok-isim')?kr.querySelector('.stok-isim').textContent:getStokIsmi(sk),m=kr.querySelector('.edit-miktar')?kr.querySelector('.edit-miktar').value:"0",p=kr.querySelector('.edit-plaka')?kr.querySelector('.edit-plaka').value:"0",t=kr.querySelector('.edit-toplam')?kr.querySelector('.edit-toplam').value:"0",a=kr.querySelector('.edit-aciklama')?kr.querySelector('.edit-aciklama').value:"";if(sk&&sk.trim())yk.push({"Stok Kodu":sk,"Stok İsmi":si,"Miktar":formatNumber(m),"1 Plaka (kg)":formatNumber(p),"Toplam Kg":formatNumber(t),"Açıklama":a});});if(yk.length===0){alert("En az bir kalem olmalı!");return;}r["Grup"]=yg;r["Kalemler"]=yk;r["Duzenlendi"]=true;r["Duzenleyen"]=aktifKullanici;var s=new Date();r["DuzenlemeTarihi"]=s.toLocaleDateString('tr-TR')+" "+s.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});syncData();alert("✅ Kaydedildi!");document.getElementById("detayModal").style.display="none";filteredVeriler=gecmisVeriler.slice();gecmisYukle();ozetTumZaman();};
+document.getElementById("detaySilBtn").onclick=function(){if(detayEditingIdx!==null&&detayEditingIdx>=0){var r=gecmisVeriler[detayEditingIdx];if(!kullaniciEvragiSilebilirMi(r)){alert("🔒 Kilitli!");return;}document.getElementById("detayModal").style.display="none";if(confirm("Silinsin mi?"))evrakSilOnaylandi(detayEditingIdx);}};
+window.evrakSil=function(i){var r=gecmisVeriler[i];if(!r)return;if(!kullaniciEvragiSilebilirMi(r)){alert("🔒 Kilitli!");return;}if(confirm("Silinsin mi?"))evrakSilOnaylandi(i);};
+function evrakSilOnaylandi(i){var se=JSON.parse(JSON.stringify(gecmisVeriler[i]));se["SilinmeTarihi"]=new Date().toLocaleString('tr-TR');se["SilenKullanici"]=aktifKullanici;silinenEvraklarArsivi.push(se);var ss=gecmisVeriler[i]["Sıra No"];gecmisVeriler.splice(i,1);if(!silinenSiralar.includes(ss))silinenSiralar.push(ss);aktarilanEvraklar=aktarilanEvraklar.filter(s=>s!==ss);saveToLocal();syncData();seciliEvrakIndisleri.clear();filteredVeriler=gecmisVeriler.slice();gecmisYukle();ozetTumZaman();}
+
+// ============ AYARLAR ============
+document.getElementById("ayarlarBtn").onclick=function(){if(!ayarlarAdminOnaylandi){bekleyenIslem='ayarlarGiris';document.getElementById("adminModal").style.display="block";}else ayarlarSayfasiniAc();};
+document.getElementById("adminOnayBtn").onclick=function(){var au=document.getElementById("adminUsername").value.trim(),ap=document.getElementById("adminPassword").value.trim();if(adminBilgileri[au]&&adminBilgileri[au]===ap){document.getElementById("adminModal").style.display="none";if(bekleyenIslem==='ayarlarGiris'){ayarlarAdminOnaylandi=true;ayarlarSayfasiniAc();}bekleyenIslem=null;}else{document.getElementById("adminError").style.display="block";}};
+function ayarlarSayfasiniAc(){document.getElementById("yeniGirisAlan").classList.add("hidden");document.getElementById("oncekiGirislerAlan").classList.add("hidden");document.getElementById("stokDuzenleAlan").classList.add("hidden");document.getElementById("ayarlarAlan").classList.remove("hidden");kullaniciListesiniGoster();silinenEvraklariGoster();}
+document.getElementById("ayarlardanCikBtn").onclick=function(){ayarlarAdminOnaylandi=false;anaSayfayaDon();};
+function kullaniciListesiniGoster(){var h='<h4>Mevcut Kullanıcılar</h4>';Object.keys(kullanicilar).forEach(k=>{var ia=adminKullanicilar.includes(k),rb=ia?'<span class="kullanici-rol admin">Admin</span>':'<span class="kullanici-rol kullanici">Kullanıcı</span>';h+=`<div class="kullanici-card"><span>👤 ${k}${rb}</span><div class="btn-group"><button class="btn btn-info btn-xs" onclick="kullaniciDuzenle('${k}')">✏️</button><button class="btn btn-danger btn-xs" onclick="kullaniciSil('${k}')">🗑️</button></div></div>`;});document.getElementById("kullaniciListesi").innerHTML=h;}
+document.getElementById("kullaniciEkleBtn").onclick=function(){var ya=document.getElementById("yeniKullaniciAdi").value.trim(),ys=document.getElementById("yeniKullaniciSifre").value.trim();if(!ya||!ys)return;if(kullanicilar[ya])return;kullanicilar[ya]=ys;syncData();document.getElementById("yeniKullaniciAdi").value="";document.getElementById("yeniKullaniciSifre").value="";kullaniciListesiniGoster();};
+window.kullaniciSil=function(k){if(k===aktifKullanici||adminKullanicilar.includes(k)||Object.keys(kullanicilar).length<=2)return;if(confirm(k+" silinsin mi?")){delete kullanicilar[k];syncData();kullaniciListesiniGoster();}};
+window.kullaniciDuzenle=function(k){duzenlenenKullanici=k;document.getElementById("duzenlenenKullaniciAdi").textContent=k;document.getElementById("kullaniciDuzenleModal").style.display="block";};
+document.getElementById("kullaniciGuncelleBtn").onclick=function(){var es=document.getElementById("eskiSifreKontrol").value.trim(),ya=document.getElementById("yeniKullaniciAdiInput").value.trim(),ys=document.getElementById("yeniSifreInput").value.trim();if(!es||kullanicilar[duzenlenenKullanici]!==es)return;if(ya&&ya!==duzenlenenKullanici){if(kullanicilar[ya])return;kullanicilar[ya]=ys||kullanicilar[duzenlenenKullanici];delete kullanicilar[duzenlenenKullanici];if(aktifKullanici===duzenlenenKullanici){aktifKullanici=ya;document.getElementById("currentUser").textContent=ya;kullaniciRolGuncelle();stokDuzenleButonKontrol();}}else if(ys)kullanicilar[duzenlenenKullanici]=ys;syncData();document.getElementById("kullaniciDuzenleModal").style.display="none";kullaniciListesiniGoster();};
+function silinenEvraklariGoster(){var c=document.getElementById("silinenEvraklarTablosu");if(silinenEvraklarArsivi.length===0){c.innerHTML="<p style='padding:20px;text-align:center;color:#999;'>Silinen evrak bulunmuyor.</p>";return;}var h='<table><thead><tr><th>Seç</th><th>Seri No</th><th>Sıra No</th><th>Grup</th><th>Oluşturan</th><th>Silen</th><th>Silinme Tarihi</th><th>Kalem</th></tr></thead><tbody>';silinenEvraklarArsivi.forEach((e,i)=>{h+=`<tr class="${seciliSilinenIdx===i?'selected':''}" onclick="silinenEvrakSec(${i})" style="cursor:pointer;"><td><input type="radio" name="silinenSec"${seciliSilinenIdx===i?' checked':''}></td><td>${e["Seri No"]}</td><td>${e["Sıra No"]}</td><td>${e["Grup"]}</td><td>${e["Olusturan"]||e["Kullanıcı"]||""}</td><td>${e["SilenKullanici"]||""}</td><td>${e["SilinmeTarihi"]||""}</td><td>${e.Kalemler?e.Kalemler.length:0}</td></tr>`;});h+='</tbody></table>';c.innerHTML=h;}
+window.silinenEvrakSec=function(i){seciliSilinenIdx=i;silinenEvraklariGoster();};
+document.getElementById("silinenleriTemizleBtn").onclick=function(){if(silinenEvraklarArsivi.length===0)return;if(confirm("Kalıcı silinsin mi?")){silinenEvraklarArsivi=[];syncData();seciliSilinenIdx=null;silinenEvraklariGoster();}};
+document.getElementById("silineniGeriYukleBtn").onclick=function(){if(seciliSilinenIdx===null)return;var gy=silinenEvraklarArsivi[seciliSilinenIdx];if(confirm("Geri yüklensin mi?")){silinenSiralar=silinenSiralar.filter(s=>s!==gy["Sıra No"]);delete gy["SilinmeTarihi"];delete gy["SilenKullanici"];gecmisVeriler.push(gy);silinenEvraklarArsivi.splice(seciliSilinenIdx,1);syncData();seciliSilinenIdx=null;silinenEvraklariGoster();}};
+window.kapatModal=function(id){document.getElementById(id).style.display="none";};
+window.onclick=function(e){if(e.target.classList.contains('modal'))e.target.style.display="none";};
+document.addEventListener('keydown',function(e){if(e.key==='Escape')document.querySelectorAll('.modal').forEach(m=>m.style.display='none');});
+
+// ============ BAŞLANGIÇ ============
+(function(){kullanicilar=JSON.parse(localStorage.getItem("kullanicilar"))||{"SAC1":"sac1sac","SAC2":"2sac2","SAC3":"sac3sac","SAC4":"4sac4"};if(!kullanicilar["Muhammed"])kullanicilar["Muhammed"]="muhammed123";if(!kullanicilar["Burak"])kullanicilar["Burak"]="brk2468";gecmisVeriler=JSON.parse(localStorage.getItem("gecmisVeriler"))||[];siraNo=parseInt(localStorage.getItem("siraNo")||"0");silinenSiralar=JSON.parse(localStorage.getItem("silinenSiralar")||"[]");aktarilanEvraklar=JSON.parse(localStorage.getItem("aktarilanEvraklar")||"[]");silinenEvraklarArsivi=JSON.parse(localStorage.getItem("silinenEvraklarArsivi")||"[]");stokBilgileri=JSON.parse(localStorage.getItem("stokBilgileri"))||{};plakaWeights=JSON.parse(localStorage.getItem("plakaWeights"))||{};stokGruplari=JSON.parse(localStorage.getItem("stokGruplari"))||{};urunleriGuncelle();var b=new Date();document.getElementById("ozetTarih").value=b.getFullYear()+'-'+String(b.getMonth()+1).padStart(2,'0')+'-'+String(b.getDate()).padStart(2,'0');})();
+console.log("✅✅✅ TAM SÜRÜM HAZIR - Excel aktarma ANINDA güncellenir!");
 </script>
 </body>
 </html>
