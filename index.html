@@ -253,6 +253,17 @@
             background: #e8f5e9; padding: 8px 12px; border-radius: 6px; margin: 5px 0;
             font-size: 12px; color: #2e7d32; display: flex; align-items: center; gap: 8px;
         }
+        .reset-btn {
+            background: #ff5252; color: white; border: none; padding: 10px 20px;
+            border-radius: 6px; cursor: pointer; font-size: 14px; margin-top: 10px;
+            transition: all 0.3s;
+        }
+        .reset-btn:hover { background: #d32f2f; }
+        .debug-panel {
+            background: #1a1a2e; color: #00ff00; padding: 10px 15px; 
+            border-radius: 6px; margin: 10px 0; font-family: monospace; font-size: 12px;
+            max-height: 200px; overflow-y: auto;
+        }
     </style>
 </head>
 <body>
@@ -270,6 +281,7 @@
             <button type="button" class="login-btn" id="loginBtn">GİRİŞ YAP</button>
             <div class="login-error" id="loginError">Kullanıcı adı veya şifre hatalı!</div>
         </form>
+        <button class="reset-btn" id="resetAllDataBtn" style="margin-top:20px; width:100%;">🔄 TÜM VERİLERİ SIFIRLA (Firebase + LocalStorage)</button>
     </div>
 </div>
 
@@ -286,8 +298,10 @@
             </div>
         </div>
         
-        <div class="kayit-debug" id="debugBilgi">
-            🔍 Oturum: <strong id="debugKullanici">-</strong> | Kayıtlar bu kullanıcı adıyla oluşturulacak
+        <div class="debug-panel" id="debugPanel">
+            <strong>🔍 DEBUG PANEL:</strong><br>
+            <span id="debugMikroListe"></span><br>
+            <span id="debugEvrakSayisi"></span>
         </div>
         
         <div class="header-buttons">
@@ -540,10 +554,66 @@
     
     let senkronizasyonDevamEdiyor = false;
 
-    // ============ DEBUG FONKSİYONU ============
+    // ============ DEBUG PANEL ============
+    function debugPanelGuncelle() {
+        document.getElementById("debugMikroListe").textContent = 
+            "Mikro Listesi (" + mikroyeAktarilanEvraklar.length + " evrak): [" + mikroyeAktarilanEvraklar.join(", ") + "]";
+        document.getElementById("debugEvrakSayisi").textContent = 
+            "Toplam Evrak: " + gecmisVeriler.length + " | Aktif Kullanıcı: " + (aktifKullanici || "-");
+    }
+
+    // ============ TÜM VERİLERİ SIFIRLA ============
+    document.getElementById("resetAllDataBtn").onclick = function() {
+        if (confirm("⚠️ TÜM VERİLER SİLİNECEK!\n\nBu işlem:\n- Firebase'deki tüm verileri\n- LocalStorage'daki tüm verileri\n- Mikro listesini\n- Tüm evrakları\n\nSİLECEK!\n\nDevam etmek istiyor musunuz?")) {
+            if (confirm("SON UYARI! Geri dönüşü yok. Emin misiniz?")) {
+                // Firebase'i temizle
+                database.ref('sacKesim').remove().then(function() {
+                    console.log("✅ Firebase tamamen temizlendi");
+                }).catch(function(err) {
+                    console.error("Firebase temizleme hatası:", err);
+                });
+                
+                // LocalStorage'ı temizle
+                localStorage.clear();
+                
+                // Değişkenleri sıfırla
+                gecmisVeriler = [];
+                mikroyeAktarilanEvraklar = [];
+                siraNo = 0;
+                silinenSiralar = [];
+                silinenEvraklarArsivi = [];
+                
+                // Varsayılan verileri tekrar yükle
+                kullanicilar = { 
+                    "SAC1": "sac1sac", "SAC2": "2sac2", "SAC3": "sac3sac", "SAC4": "4sac4",
+                    "Muhammed": "muhammed123", "Burak": "brk2468"
+                };
+                stokBilgileri = getDefaultStokBilgileri();
+                plakaWeights = getDefaultPlakaWeights();
+                stokGruplari = {};
+                Object.keys(stokBilgileri).forEach(function(kod) {
+                    if (kod.startsWith("HC1")) stokGruplari[kod] = "430";
+                    else if (kod.startsWith("HD1")) stokGruplari[kod] = "DKP";
+                    else if (kod.startsWith("HG1")) stokGruplari[kod] = "GALVANIZ";
+                    else if (kod.startsWith("HN1")) stokGruplari[kod] = "304";
+                    else if (kod === "HX1.0043") stokGruplari[kod] = "201";
+                    else if (["HX1.0001","HX1.0002","HX1.0044","HX1.0045"].includes(kod)) stokGruplari[kod] = "316";
+                });
+                
+                urunleriGuncelle();
+                saveToLocal();
+                saveToFirebase();
+                debugPanelGuncelle();
+                
+                alert("✅ TÜM VERİLER SIFIRLANDI!\n\nFirebase ve LocalStorage temizlendi.\nVarsayılan stoklar ve kullanıcılar yüklendi.\n\nŞimdi giriş yapabilirsiniz.");
+            }
+        }
+    };
+
     function debugGuncelle() {
         document.getElementById("debugKullanici").textContent = aktifKullanici || "Giriş yapılmadı";
         document.getElementById("infoKullanici").textContent = aktifKullanici || "-";
+        debugPanelGuncelle();
     }
 
     // ============ VERİ YÜKLEME ============
@@ -574,6 +644,8 @@
             });
         }
         urunleriGuncelle();
+        debugPanelGuncelle();
+        console.log("📦 LocalStorage'dan veriler yüklendi. Mikro listesi:", mikroyeAktarilanEvraklar.length, "evrak");
     }
 
     function getDefaultStokBilgileri() {
@@ -676,6 +748,7 @@
         senkronizasyonDevamEdiyor = true;
         
         console.log("💾 Firebase'e kaydediliyor... Evrak sayısı:", gecmisVeriler.length, "Mikro listesi:", mikroyeAktarilanEvraklar.length);
+        console.log("🔍 Mikro listesi içeriği:", JSON.stringify(mikroyeAktarilanEvraklar));
         
         var updates = {};
         updates['sacKesim/gecmisVeriler'] = gecmisVeriler;
@@ -695,6 +768,7 @@
             updateSyncStatus(true);
             saveToLocal();
             senkronizasyonDevamEdiyor = false;
+            debugPanelGuncelle();
         }).catch(function(error) {
             console.error("❌ Firebase yazma hatası:", error);
             updateSyncStatus(false);
@@ -703,7 +777,7 @@
         });
     }
 
-    // DÜZELTİLDİ: loadFromFirebase - Mikro listesini doğru şekilde yükle
+    // DÜZELTİLMİŞ: loadFromFirebase - Mikro listesini AYNEN Firebase'den al
     function loadFromFirebase() {
         console.log("🔄 Firebase'den veri yükleniyor...");
         
@@ -711,6 +785,7 @@
             const data = snapshot.val();
             if (data) {
                 console.log("📥 Firebase verisi alındı");
+                console.log("🔍 Firebase'deki Mikro listesi:", JSON.stringify(data.mikroyeAktarilanEvraklar || []));
                 
                 if (data.kullanicilar) {
                     let fbKullanicilar = data.kullanicilar;
@@ -719,7 +794,6 @@
                     kullanicilar = fbKullanicilar;
                 }
                 
-                // Evrakları birleştir
                 let fbEvraklar = data.gecmisVeriler || [];
                 let birlesmisEvraklar = [];
                 let eklenenSiralar = new Set();
@@ -754,10 +828,9 @@
                     siraNo = Math.max(localSiraNo, data.siraNo);
                 }
                 
-                // 🔧 MİKRO LİSTESİ: Firebase'deki listeyi olduğu gibi al
-                // (başka cihazda işaretlenmiş olanlar buraya gelir)
+                // 🔧 MİKRO LİSTESİ: SADECE Firebase'deki listeyi al, localStorage'ı yok say
                 mikroyeAktarilanEvraklar = data.mikroyeAktarilanEvraklar || [];
-                console.log("🔒 Firebase'den Mikro listesi alındı:", mikroyeAktarilanEvraklar.length, "evrak -", JSON.stringify(mikroyeAktarilanEvraklar));
+                console.log("🔒 Mikro listesi Firebase'den alındı:", mikroyeAktarilanEvraklar.length, "evrak -", JSON.stringify(mikroyeAktarilanEvraklar));
                 
                 if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
                 if (data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
@@ -768,6 +841,7 @@
                 urunleriGuncelle();
                 saveToLocal();
                 updateSyncStatus(true);
+                debugPanelGuncelle();
                 
                 if (aktifKullanici) {
                     kullaniciRolGuncelle();
@@ -779,13 +853,15 @@
                     }
                 }
             } else {
-                console.log("📭 Firebase'de veri yok, lokal veri yazılıyor");
+                console.log("📭 Firebase'de veri yok");
+                updateSyncStatus(true);
                 saveToFirebase();
+                debugPanelGuncelle();
             }
         }).catch(function(error) {
             console.error("❌ Firebase okuma hatası:", error);
             updateSyncStatus(false);
-            baslangicVerileriniYukle();
+            debugPanelGuncelle();
         });
     }
 
@@ -1041,13 +1117,15 @@
         };
         
         console.log("📝 Yeni evrak oluşturuldu: Sıra No", ms, "Oluşturan:", evrak.Olusturan);
+        console.log("⚠️ Bu evrak Mikro listesine EKLENMEYECEK! Mevcut liste:", JSON.stringify(mikroyeAktarilanEvraklar));
         
         gecmisVeriler.push(evrak);
+        // YENİ KAYIT MİKRO LİSTESİNE EKLENMEZ!
         saveToFirebase();
         
         document.getElementById("mesaj").innerHTML = 
             "<span class='success'>✅ Evrak kaydedildi! Sıra No: " + ms + 
-            " | Oluşturan: <strong>" + aktifKullanici + "</strong></span>";
+            " | Oluşturan: <strong>" + aktifKullanici + "</strong> | Mikro: ❌ İşaretlenmedi</span>";
         
         document.getElementById("tabloAlan").innerHTML = ""; 
         document.getElementById("tabloAlan").style.display = "none";
@@ -1326,6 +1404,7 @@
         if (ozetModu === "tarih" && seciliOzetTarih) ozetHesapla(); 
         else ozetTumZaman();
         
+        debugPanelGuncelle();
         gecmisYukle();
     }
 
@@ -1457,7 +1536,7 @@
             "<span style='color:orange;'>Filtreye uygun evrak bulunamadı.</span>";
     }
 
-    // DÜZELTİLDİ: Mikro durum değiştirme - Admin işareti kaldırabilir
+    // DÜZELTİLMİŞ: Mikro durum değiştirme
     window.mikroDurumDegistir = function(checkbox, siraNo) {
         if (!isAdmin()) { 
             alert("Bu işlem için admin yetkisi gereklidir!"); 
@@ -1466,21 +1545,21 @@
         }
         
         if (checkbox.checked) {
-            // Mikro'ya aktarıldı işaretle
             if (!mikroyeAktarilanEvraklar.includes(siraNo)) {
                 mikroyeAktarilanEvraklar.push(siraNo);
                 console.log("✅ Mikro'ya aktarıldı: Sıra No " + siraNo);
             }
         } else {
-            // Mikro işaretini kaldır
             mikroyeAktarilanEvraklar = mikroyeAktarilanEvraklar.filter(function(s) { return s !== siraNo; });
             console.log("🔓 Mikro işareti kaldırıldı: Sıra No " + siraNo);
         }
         
-        // Hemen Firebase'e kaydet
+        console.log("🔍 Güncel Mikro listesi:", JSON.stringify(mikroyeAktarilanEvraklar));
+        
         database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
             console.log("✅ Mikro listesi Firebase'e kaydedildi:", mikroyeAktarilanEvraklar.length, "evrak");
             saveToLocal();
+            debugPanelGuncelle();
         }).catch(function(error) {
             console.error("❌ Mikro kaydetme hatası:", error);
         });
@@ -1813,7 +1892,6 @@
         
         let yg = document.getElementById("editGrup") ? document.getElementById("editGrup").value : gecmisVeriler[i]["Grup"];
         
-        // Mikro durumunu güncelle
         if (isAdmin()) {
             let ms = document.getElementById("editMikroDurum");
             if (ms) {
@@ -2206,12 +2284,13 @@
                 }
             });
             
-            // Mikro listesini de kontrol et (sadece Firebase'deki listeyi al, birleştirme yapma)
+            // Mikro listesini Firebase'den al (birleştirme yapma!)
             database.ref('sacKesim/mikroyeAktarilanEvraklar').once('value').then(function(ms) {
                 let fm = ms.val() || [];
                 mikroyeAktarilanEvraklar = fm;
                 saveToLocal();
-                console.log("🔒 Periyodik: Mikro listesi güncellendi:", mikroyeAktarilanEvraklar.length);
+                debugPanelGuncelle();
+                console.log("🔒 Periyodik: Mikro listesi Firebase'den alındı:", mikroyeAktarilanEvraklar.length);
                 
                 if (!document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
                     gecmisYukle();
@@ -2231,11 +2310,12 @@
         debugGuncelle();
     });
     
-    console.log("✅ Sac Kesim Takip Sistemi v2.2 - MİKRO DÜZELTMESİ YAPILDI!");
-    console.log("🔧 Düzeltmeler:");
-    console.log("  1. Mikro listesi artık sadece Firebase'deki liste ile güncelleniyor");
-    console.log("  2. Admin'ler Mikro işaretini kaldırabilir");
-    console.log("  3. Yeni kayıtlarda Mikro otomatik işaretlenmez");
+    console.log("✅ Sac Kesim Takip Sistemi v2.3 - TAM DÜZELTME");
+    console.log("🔧 Yeni özellikler:");
+    console.log("  1. DEBUG PANEL - Mikro listesini canlı gösterir");
+    console.log("  2. SIFIRLAMA BUTONU - Firebase ve LocalStorage'ı tamamen temizler");
+    console.log("  3. Yeni kayıtlar ASLA Mikro listesine eklenmez");
+    console.log("  4. Mikro listesi sadece Firebase'deki veriyi kullanır");
 </script>
 </body>
 </html>
