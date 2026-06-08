@@ -1309,10 +1309,18 @@ function loadFromFirebase() {
     };
 
     // ============ syncData - Basitleştirildi ============
-    function syncData() {
-        saveToLocal();
-        saveToFirebase();
-    }
+function syncData() {
+    saveToLocal();
+    // ZORLA Firebase'e yaz
+    database.ref('sacKesim/gecmisVeriler').set(gecmisVeriler).then(function() {
+        console.log('✅ Sync: ' + gecmisVeriler.length + ' evrak Firebase\'e yazıldı');
+        database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
+            console.log('✅ Sync: Mikro listesi de yazıldı');
+        });
+    }).catch(function(err) {
+        console.error('❌ Sync hatası:', err);
+    });
+}
 
     // ============ ÖNCEKİ GİRİŞLER ============
     function gecmisListesiniGoster() {
