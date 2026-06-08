@@ -249,6 +249,10 @@
             background: #e3f2fd; padding: 6px 12px; border-radius: 4px; font-size: 12px;
             color: #1565c0; margin-bottom: 5px; display: inline-block;
         }
+        .kayit-debug { 
+            background: #e8f5e9; padding: 8px 12px; border-radius: 6px; margin: 5px 0;
+            font-size: 12px; color: #2e7d32; display: flex; align-items: center; gap: 8px;
+        }
     </style>
 </head>
 <body>
@@ -282,12 +286,18 @@
             </div>
         </div>
         
+        <!-- DEBUG: Aktif kullanıcı bilgisi -->
+        <div class="kayit-debug" id="debugBilgi">
+            🔍 Oturum: <strong id="debugKullanici">-</strong> | Kayıtlar bu kullanıcı adıyla oluşturulacak
+        </div>
+        
         <div class="header-buttons">
             <button class="btn" id="yeniGirisBtn">➕ Yeni Giriş</button>
             <button class="btn btn-secondary" id="oncekiGirislerBtn">📂 Önceki Girişler</button>
         </div>
 
         <div id="yeniGirisAlan">
+            <div class="info-note">⚠️ <strong>Önemli:</strong> Kayıtlar <strong><span id="infoKullanici">-</span></strong> kullanıcısı adına oluşturulacaktır.</div>
             <div class="form-group">
                 <label>Stok Grubu Seçiniz:</label>
                 <select id="stokGrubu">
@@ -341,7 +351,6 @@
                 <div><label>Sıra No</label><input type="text" id="filtre_sira" placeholder="Filtrele..."></div>
                 <div><label>Grup</label><select id="filtre_grup"><option value="">-- Tümü --</option><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option><option value="HRD">HRD</option></select></div>
                 <div><label>Durum</label><select id="filtre_durum"><option value="">-- Tümü --</option><option value="bekliyor">Bekliyor</option><option value="mikro">Mikro'ya Aktarıldı</option><option value="duzenlendi">Düzenlendi</option></select></div>
-                <div><label>📅 Kayıt Tarihi</label><input type="date" id="filtre_tarih"></div>
                 <div style="display:flex; align-items:flex-end; gap:10px;">
                     <button class="btn btn-secondary" id="filtreUygulaBtn">🔍 Filtre</button>
                     <button class="btn btn-danger" id="filtreTemizleBtn">🗑️ Temizle</button>
@@ -525,17 +534,26 @@
     let isOnline = false;
     let ozetModu = "tum";
     let seciliOzetTarih = "";
-    let currentSortColumn = 'kayitTarihi';
+    let currentSortColumn = 'siraNo';
     let currentSortDirection = 'desc';
     let urunler = {};
     
+    // YENİ: Senkronizasyon kilit mekanizması
     let senkronizasyonDevamEdiyor = false;
+    let sonFirebaseVeri = null;
+
+    // ============ DEBUG FONKSİYONU ============
+    function debugGuncelle() {
+        document.getElementById("debugKullanici").textContent = aktifKullanici || "Giriş yapılmadı";
+        document.getElementById("infoKullanici").textContent = aktifKullanici || "-";
+    }
 
     // ============ VERİ YÜKLEME ============
     function baslangicVerileriniYukle() {
         kullanicilar = JSON.parse(localStorage.getItem("kullanicilar")) || { 
             "SAC1": "sac1sac", "SAC2": "2sac2", "SAC3": "sac3sac", "SAC4": "4sac4"
         };
+        // Admin kullanıcıları garantiye al
         if (!kullanicilar["Muhammed"]) kullanicilar["Muhammed"] = "muhammed123";
         if (!kullanicilar["Burak"]) kullanicilar["Burak"] = "brk2468";
         
@@ -587,10 +605,7 @@
     // ============ YETKİ KONTROL ============
     function isAdmin() { return adminKullanicilar.includes(aktifKullanici); }
     function isStandartKullanici() { return aktifKullanici && !isAdmin(); }
-    function evrakMikroyaAktarildiMi(evrak) { 
-        if (!evrak || evrak["Sıra No"] === undefined) return false;
-        return mikroyeAktarilanEvraklar.includes(evrak["Sıra No"]); 
-    }
+    function evrakMikroyaAktarildiMi(evrak) { return mikroyeAktarilanEvraklar.includes(evrak["Sıra No"]); }
     function evrakKilitliMi(evrak) { return evrakMikroyaAktarildiMi(evrak); }
     
     function kullaniciEvragiDuzenleyebilirMi(evrak) {
@@ -633,7 +648,7 @@
         return yeni;
     }
 
-    // ============ FIREBASE SENKRONİZASYON ============
+    // ============ FIREBASE SENKRONİZASYON (DÜZELTİLDİ) ============
     function updateSyncStatus(online) {
         isOnline = online;
         const s = document.getElementById("syncStatus");
@@ -652,12 +667,16 @@
         localStorage.setItem("stokGruplari", JSON.stringify(stokGruplari));
     }
 
+    // DÜZELTME 1: saveToFirebase - Tüm listeyi tek seferde yaz (önceki veriyi temizlemeden)
     function saveToFirebase() {
         if (senkronizasyonDevamEdiyor) {
+            console.log("⏳ Senkronizasyon devam ediyor, bekleniyor...");
             setTimeout(function() { saveToFirebase(); }, 500);
             return;
         }
         senkronizasyonDevamEdiyor = true;
+        
+        console.log("💾 Firebase'e kaydediliyor... Evrak sayısı:", gecmisVeriler.length);
         
         var updates = {};
         updates['sacKesim/gecmisVeriler'] = gecmisVeriler;
@@ -673,89 +692,121 @@
         updates['sacKesim/lastUpdatedBy'] = aktifKullanici || "sistem";
         
         database.ref('sacKesim').update(updates).then(function() {
+            console.log("✅ Firebase güncellendi -", gecmisVeriler.length, "evrak");
             updateSyncStatus(true);
+            sonFirebaseVeri = JSON.parse(JSON.stringify(gecmisVeriler));
             saveToLocal();
             senkronizasyonDevamEdiyor = false;
         }).catch(function(error) {
+            console.error("❌ Firebase yazma hatası:", error);
             updateSyncStatus(false);
             saveToLocal();
             senkronizasyonDevamEdiyor = false;
         });
     }
 
-    function loadFromFirebase() {
-        database.ref('sacKesim/').once('value').then(function(snapshot) {
-            const data = snapshot.val();
-            if (data) {
-                if (data.kullanicilar) {
-                    let fbKullanicilar = data.kullanicilar;
-                    if (!fbKullanicilar["Muhammed"]) fbKullanicilar["Muhammed"] = "muhammed123";
-                    if (!fbKullanicilar["Burak"]) fbKullanicilar["Burak"] = "brk2468";
-                    kullanicilar = fbKullanicilar;
+    // DÜZELTME 2: loadFromFirebase - BİRLEŞTİRME mantığı (lokal veriyi koru)
+    // DÜZELTİLMİŞ loadFromFirebase - Mikro listesi korunur
+function loadFromFirebase() {
+    console.log("🔄 Firebase'den veri yükleniyor...");
+    
+    // Lokal veriyi yedekle
+    let localGecmis = JSON.parse(JSON.stringify(gecmisVeriler));
+    let localMikro = JSON.parse(JSON.stringify(mikroyeAktarilanEvraklar));
+    let localSiraNo = siraNo;
+    
+    database.ref('sacKesim/').once('value').then(function(snapshot) {
+        const data = snapshot.val();
+        if (data) {
+            console.log("📥 Firebase verisi alındı");
+            
+            if (data.kullanicilar) {
+                let fbKullanicilar = data.kullanicilar;
+                if (!fbKullanicilar["Muhammed"]) fbKullanicilar["Muhammed"] = "muhammed123";
+                if (!fbKullanicilar["Burak"]) fbKullanicilar["Burak"] = "brk2468";
+                kullanicilar = fbKullanicilar;
+            }
+            
+            // Evrakları birleştir
+            let fbEvraklar = data.gecmisVeriler || [];
+            let birlesmisEvraklar = [];
+            let eklenenSiralar = new Set();
+            
+            fbEvraklar.forEach(function(evrak) {
+                if (!evrak.Olusturan || evrak.Olusturan === "") {
+                    evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
                 }
-                
-                let fbEvraklar = data.gecmisVeriler || [];
-                let birlesmisEvraklar = [];
-                let eklenenSiralar = new Set();
-                
-                fbEvraklar.forEach(function(evrak) {
+                birlesmisEvraklar.push(evrak);
+                eklenenSiralar.add(evrak["Sıra No"]);
+            });
+            
+            let lokaldenEklenen = 0;
+            localGecmis.forEach(function(evrak) {
+                if (!eklenenSiralar.has(evrak["Sıra No"])) {
                     if (!evrak.Olusturan || evrak.Olusturan === "") {
                         evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
                     }
                     birlesmisEvraklar.push(evrak);
                     eklenenSiralar.add(evrak["Sıra No"]);
-                });
-                
-                let lokalGecmis = JSON.parse(localStorage.getItem("gecmisVeriler") || "[]");
-                lokalGecmis.forEach(function(evrak) {
-                    if (!eklenenSiralar.has(evrak["Sıra No"])) {
-                        if (!evrak.Olusturan || evrak.Olusturan === "") {
-                            evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
-                        }
-                        birlesmisEvraklar.push(evrak);
-                        eklenenSiralar.add(evrak["Sıra No"]);
-                    }
-                });
-                
-                birlesmisEvraklar.sort(function(a, b) {
-                    return (a["Sıra No"] || 0) - (b["Sıra No"] || 0);
-                });
-                
-                gecmisVeriler = birlesmisEvraklar;
-                
-                if (data.siraNo !== undefined) {
-                    let localSiraNo = localStorage.getItem("siraNo") ? parseInt(localStorage.getItem("siraNo")) : 0;
-                    siraNo = Math.max(localSiraNo, data.siraNo);
+                    lokaldenEklenen++;
                 }
-                
-                mikroyeAktarilanEvraklar = data.mikroyeAktarilanEvraklar || [];
-                
-                if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
-                if (data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
-                if (data.stokBilgileri) stokBilgileri = decodeObjectFromFirebase(data.stokBilgileri);
-                if (data.plakaWeights) plakaWeights = decodeObjectFromFirebase(data.plakaWeights);
-                if (data.stokGruplari) stokGruplari = decodeObjectFromFirebase(data.stokGruplari);
-                
-                urunleriGuncelle();
-                saveToLocal();
-                updateSyncStatus(true);
-                
-                if (aktifKullanici) {
-                    kullaniciRolGuncelle();
-                    stokDuzenleButonKontrol();
-                    if (document.getElementById("oncekiGirislerAlan") && 
-                        !document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
-                        gecmisListesiniGoster();
-                    }
-                }
-            } else {
-                updateSyncStatus(true);
-                saveToFirebase();
+            });
+            
+            birlesmisEvraklar.sort(function(a, b) {
+                return (a["Sıra No"] || 0) - (b["Sıra No"] || 0);
+            });
+            
+            gecmisVeriler = birlesmisEvraklar;
+            
+            if (data.siraNo !== undefined) {
+                siraNo = Math.max(localSiraNo, data.siraNo);
             }
-        }).catch(function(error) {
-            updateSyncStatus(false);
-        });
-    }
+            
+            // 🔧 MİKRO DÜZELTMESİ BURADA:
+            let fbMikro = data.mikroyeAktarilanEvraklar || [];
+            // Firebase ve local'i birleştir
+            mikroyeAktarilanEvraklar = [...new Set([...fbMikro, ...localMikro])];
+            console.log("🔒 Mikro listesi:", mikroyeAktarilanEvraklar.length, "evrak");
+            
+            if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
+            if (data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
+            if (data.stokBilgileri) stokBilgileri = decodeObjectFromFirebase(data.stokBilgileri);
+            if (data.plakaWeights) plakaWeights = decodeObjectFromFirebase(data.plakaWeights);
+            if (data.stokGruplari) stokGruplari = decodeObjectFromFirebase(data.stokGruplari);
+            
+            urunleriGuncelle();
+            saveToLocal();
+            updateSyncStatus(true);
+            
+            // 🔧 BİRLEŞTİRİLMİŞ MİKRO LİSTESİNİ FIREBASE'E GERİ YAZ
+            database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
+                console.log("✅ Mikro listesi Firebase'e kaydedildi");
+            });
+            
+            // Firebase'i güncel veriyle güncelle
+            setTimeout(function() {
+                saveToFirebase();
+            }, 1000);
+            
+            if (aktifKullanici) {
+                kullaniciRolGuncelle();
+                stokDuzenleButonKontrol();
+                debugGuncelle();
+                if (document.getElementById("oncekiGirislerAlan") && 
+                    !document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
+                    gecmisListesiniGoster();
+                }
+            }
+        } else {
+            console.log("📭 Firebase'de veri yok");
+            saveToFirebase();
+        }
+    }).catch(function(error) {
+        console.error("❌ Firebase okuma hatası:", error);
+        updateSyncStatus(false);
+        baslangicVerileriniYukle();
+    });
+}
 
     function kullaniciRolGuncelle() {
         const badge = document.getElementById("userRolBadge");
@@ -775,6 +826,7 @@
     
     function siranoArtir() { 
         siraNo = getSiraNo();
+        console.log("📌 Yeni sıra no:", siraNo);
     }
 
     function getDurum(evrak) {
@@ -850,7 +902,7 @@
             kayitSaati:'Kayıt Saati', duzenlemeTarihi:'Düzenleme Tarihi', durum:'Durum'
         };
         document.getElementById("siralamaBilgi").textContent = 
-            '🔤 Sıralama: ' + isimler[currentSortColumn] + ' - ' + 
+            '🔤 Sıralama: ' + isimler[sutun] + ' - ' + 
             (currentSortDirection==='asc'?'🔼 A→Z':'🔽 Z→A');
         document.getElementById("siralamaBilgi").style.display = 'inline-block';
         currentPage = 1; 
@@ -862,24 +914,31 @@
         let u = document.getElementById("loginUsername").value.trim();
         let p = document.getElementById("loginPassword").value.trim();
         
+        console.log("🔑 Giriş denemesi:", u);
+        
         if (kullanicilar[u] && kullanicilar[u] === p) {
             aktifKullanici = u;
+            console.log("✅ Giriş başarılı! Aktif kullanıcı:", aktifKullanici);
             
             document.getElementById("loginPage").style.display = "none";
             document.getElementById("mainPage").style.display = "block";
             document.getElementById("currentUser").textContent = u;
             kullaniciRolGuncelle(); 
             stokDuzenleButonKontrol();
+            debugGuncelle();
             anaSayfayaDon();
             document.getElementById("loginError").style.display = "none";
             
+            // Firebase'den verileri yükle
             loadFromFirebase();
         } else { 
             document.getElementById("loginError").style.display = "block"; 
+            console.log("❌ Giriş başarısız!");
         }
     };
 
     document.getElementById("logoutBtn").onclick = function() {
+        console.log("👋 Çıkış yapıldı:", aktifKullanici);
         aktifKullanici = null; 
         ayarlarAdminOnaylandi = false;
         document.getElementById("mainPage").style.display = "none";
@@ -888,6 +947,7 @@
         if (btn) btn.style.display = "none";
         const badge = document.getElementById("userRolBadge"); 
         if (badge) badge.innerHTML = "";
+        debugGuncelle();
     };
 
     function anaSayfayaDon() {
@@ -900,6 +960,7 @@
         document.getElementById("tabloAlan").style.display = "none";
         document.getElementById("tabloAlan").innerHTML = "";
         document.getElementById("mesaj").innerHTML = "";
+        debugGuncelle();
     }
 
     // ============ STOK GRUBU ============
@@ -946,7 +1007,10 @@
         });
     };
 
+    // DÜZELTME 3: Kaydetme fonksiyonu - aktifKullanici doğrudan kullanılıyor
     function kaydetVeGecmiseGit(yonlendir) {
+        console.log("💾 Kaydetme başladı. Aktif kullanıcı:", aktifKullanici);
+        
         let satirlar = document.querySelectorAll("#tabloAlan tbody tr");
         if (satirlar.length===0) { 
             document.getElementById("mesaj").innerHTML="<span class='error'>Lütfen en az bir ürün seçin!</span>"; 
@@ -958,7 +1022,7 @@
             return false; 
         }
         
-        siranoArtir();
+        siranoArtir(); // Sıra numarasını artır
         let ms = siraNo;
         let kalemler = [];
         
@@ -984,11 +1048,12 @@
         });
         
         let simdi = new Date();
+        // DÜZELTME: Olusturan alanına aktifKullanici doğrudan atanıyor
         let evrak = {
             "Seri No": SERI_NO,
             "Sıra No": ms,
             "Grup": grup,
-            "Olusturan": aktifKullanici,
+            "Olusturan": aktifKullanici,  // 🔧 DÜZELTİLDİ: Doğrudan aktifKullanici kullanılıyor
             "Duzenleyen": "",
             "Duzenlendi": false,
             "DuzenlemeTarihi": "",
@@ -997,7 +1062,15 @@
             "Kalemler": kalemler
         };
         
+        console.log("📝 Yeni evrak oluşturuldu:", JSON.stringify({
+            siraNo: ms,
+            olusturan: evrak.Olusturan,
+            aktifKullanici: aktifKullanici
+        }));
+        
         gecmisVeriler.push(evrak);
+        
+        // Firebase'e kaydet
         saveToFirebase();
         
         document.getElementById("mesaj").innerHTML = 
@@ -1107,8 +1180,7 @@
         localStorage.setItem("plakaWeights", JSON.stringify(plakaWeights));
         localStorage.setItem("stokGruplari", JSON.stringify(stokGruplari));
         urunleriGuncelle();
-        if (isOnline) saveToFirebase();
-        else saveToLocal();
+        syncData();
     }
     
     document.getElementById("stokEkleBtn").onclick = function() {
@@ -1236,10 +1308,19 @@
             "<span class='success'>✅ Stok silindi: " + k + "</span>";
     };
 
-    function syncData() {
-        saveToLocal();
-        saveToFirebase();
-    }
+    // ============ syncData - Basitleştirildi ============
+function syncData() {
+    saveToLocal();
+    // ZORLA Firebase'e yaz
+    database.ref('sacKesim/gecmisVeriler').set(gecmisVeriler).then(function() {
+        console.log('✅ Sync: ' + gecmisVeriler.length + ' evrak Firebase\'e yazıldı');
+        database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
+            console.log('✅ Sync: Mikro listesi de yazıldı');
+        });
+    }).catch(function(err) {
+        console.error('❌ Sync hatası:', err);
+    });
+}
 
     // ============ ÖNCEKİ GİRİŞLER ============
     function gecmisListesiniGoster() {
@@ -1247,9 +1328,6 @@
         document.getElementById("oncekiGirislerAlan").classList.remove("hidden");
         document.getElementById("ayarlarAlan").classList.add("hidden");
         document.getElementById("stokDuzenleAlan").classList.add("hidden");
-        
-        currentSortColumn = 'kayitTarihi';
-        currentSortDirection = 'desc';
         
         let ya = document.getElementById("yetkiBilgiAlani");
         if (isStandartKullanici()) 
@@ -1259,6 +1337,7 @@
         else 
             ya.innerHTML = '';
         
+        // Veri tutarlılığını sağla
         gecmisVeriler = gecmisVeriler.map(function(e) {
             if (!e.Olusturan || e.Olusturan === "") e.Olusturan = e.Kullanıcı || "Bilinmiyor";
             if (!e.hasOwnProperty("Duzenlendi")) e.Duzenlendi = false;
@@ -1274,9 +1353,6 @@
         filteredVeriler = sortData(filteredVeriler, currentSortColumn, currentSortDirection);
         currentPage = 1; 
         seciliEvrakIndisleri.clear();
-        
-        document.getElementById("siralamaBilgi").textContent = '🔤 Sıralama: Kayıt Tarihi - 🔽 Yeni → Eski';
-        document.getElementById("siralamaBilgi").style.display = 'inline-block';
         
         if (ozetModu === "tarih" && seciliOzetTarih) ozetHesapla(); 
         else ozetTumZaman();
@@ -1348,8 +1424,9 @@
             h += '<td class="duzenleme-tarihi">' + dt + '</td>';
             
             if (isAdmin()) {
+                let da = ma ? 'disabled' : '';
                 h += '<td class="mikro-col"><input type="checkbox" class="mikro-checkbox" data-sirano="' + 
-                     row["Sıra No"] + '" ' + (ma ? 'checked' : '') + 
+                     row["Sıra No"] + '" ' + (ma ? 'checked' : '') + ' ' + da + 
                      ' onchange="mikroDurumDegistir(this, ' + row["Sıra No"] + ')"></td>';
             }
             
@@ -1412,46 +1489,48 @@
             "<span style='color:orange;'>Filtreye uygun evrak bulunamadı.</span>";
     }
 
-    window.mikroDurumDegistir = function(checkbox, siraNo) {
-        if (!isAdmin()) { 
-            alert("Bu işlem için admin yetkisi gereklidir!"); 
-            checkbox.checked = !checkbox.checked; 
-            return; 
-        }
+    // Mikro durum değiştirme
+// DÜZELTİLMİŞ mikroDurumDegistir
+window.mikroDurumDegistir = function(checkbox, siraNo) {
+    if (!isAdmin()) { 
+        alert("Bu işlem için admin yetkisi gereklidir!"); 
+        checkbox.checked = !checkbox.checked; 
+        return; 
+    }
+    
+    if (!checkbox.checked && mikroyeAktarilanEvraklar.includes(siraNo)) {
+        alert("⚠️ Mikro'ya aktarıldı işareti bu ekrandan KALDIRILAMAZ!\n\n↩ Kaldırmak için:\n1. Detay sayfasına girin\n2. 'Düzenle' butonuna tıklayın\n3. 'Mikro Durumu'nu 'Bekliyor' olarak değiştirin\n4. Değişiklikleri kaydedin");
+        checkbox.checked = true;
+        return;
+    }
+    
+    if (checkbox.checked && !mikroyeAktarilanEvraklar.includes(siraNo)) {
+        mikroyeAktarilanEvraklar.push(siraNo);
+        console.log("✅ Mikro'ya aktarıldı: Sıra No " + siraNo);
         
-        if (checkbox.checked) {
-            if (!mikroyeAktarilanEvraklar.includes(siraNo)) {
-                mikroyeAktarilanEvraklar.push(siraNo);
-            }
-        } else {
-            mikroyeAktarilanEvraklar = mikroyeAktarilanEvraklar.filter(function(s) { return s !== siraNo; });
-        }
-        
+        // 🔧 HEMEN FIREBASE'E KAYDET
         database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
+            console.log("✅ Mikro listesi Firebase'e kaydedildi");
             saveToLocal();
+        }).catch(function(error) {
+            console.error("❌ Mikro kaydetme hatası:", error);
         });
         
+        checkbox.disabled = true;
         setTimeout(function(){ gecmisYukle(); }, 300);
-    };
+    }
+};
 
     function filtreUygula() {
         let s = document.getElementById("filtre_seri").value.toLowerCase();
         let si = document.getElementById("filtre_sira").value.toLowerCase();
         let g = document.getElementById("filtre_grup").value;
         let df = document.getElementById("filtre_durum").value;
-        let ft = document.getElementById("filtre_tarih").value;
         
         filteredVeriler = gecmisVeriler.filter(function(row) {
             if (s && !row["Seri No"].toString().toLowerCase().includes(s)) return false;
             if (si && !row["Sıra No"].toString().toLowerCase().includes(si)) return false;
             if (g && row["Grup"] !== g) return false;
-            
-            if (ft) {
-                let p = ft.split('-');
-                let arananTarih = p[2] + '.' + p[1] + '.' + p[0];
-                if (row["Kayıt Tarihi"] !== arananTarih) return false;
-            }
-            
             if (df) { 
                 let d = getDurum(row); 
                 if (df === "bekliyor" && !d.includes("Bekliyor")) return false; 
@@ -1467,13 +1546,12 @@
         seciliEvrakIndisleri.clear(); 
         gecmisYukle();
     };
-
+    
     document.getElementById("filtreTemizleBtn").onclick = function() {
         document.getElementById("filtre_seri").value = "";
         document.getElementById("filtre_sira").value = "";
         document.getElementById("filtre_grup").value = "";
         document.getElementById("filtre_durum").value = "";
-        document.getElementById("filtre_tarih").value = "";
         currentPage = 1; 
         seciliEvrakIndisleri.clear(); 
         gecmisYukle();
@@ -1659,6 +1737,7 @@
                  '<option value="bekliyor" ' + (!ma ? 'selected' : '') + '>Bekliyor</option>' +
                  '<option value="mikro" ' + (ma ? 'selected' : '') + '>Mikro\'ya Aktarıldı</option>' +
                  '</select>' +
+                 '<span style="font-size:11px;color:#6a1b9a;margin-left:10px;">(Admin olarak Mikro durumunu değiştirebilirsiniz)</span>' +
                  '</div>';
         }
         
@@ -1758,6 +1837,7 @@
         
         let yg = document.getElementById("editGrup") ? document.getElementById("editGrup").value : gecmisVeriler[i]["Grup"];
         
+        // Mikro durumunu güncelle
         if (isAdmin()) {
             let ms = document.getElementById("editMikroDurum");
             if (ms) {
@@ -1811,7 +1891,8 @@
         
         syncData();
         
-        alert("✅ Değişiklikler kaydedildi! Düzenleyen: " + aktifKullanici);
+        alert("✅ Değişiklikler kaydedildi! Düzenleyen: " + aktifKullanici + 
+              "\nDüzenleme Tarihi: " + gecmisVeriler[i]["DuzenlemeTarihi"]);
         
         document.getElementById("detayModal").style.display = "none";
         filteredVeriler = gecmisVeriler.slice();
@@ -2015,6 +2096,7 @@
                 document.getElementById("currentUser").textContent = ya;
                 kullaniciRolGuncelle();
                 stokDuzenleButonKontrol();
+                debugGuncelle();
             }
         } else if (ys) {
             kullanicilar[duzenlenenKullanici] = ys;
@@ -2117,6 +2199,57 @@
         }
     });
 
+    // ============ OTOMATİK SENKRONİZASYON (Düzeltildi) ============
+    setInterval(function() {
+        if (isOnline && aktifKullanici && !senkronizasyonDevamEdiyor) {
+            console.log("🔄 Periyodik senkronizasyon kontrolü...");
+            
+            // Önce Firebase'den güncel veriyi al
+            database.ref('sacKesim/gecmisVeriler').once('value').then(function(snap) {
+                let fbEvraklar = snap.val() || [];
+                let localSiralar = new Set(gecmisVeriler.map(e => e["Sıra No"]));
+                let yeniVar = false;
+                
+                fbEvraklar.forEach(function(evrak) {
+                    if (!localSiralar.has(evrak["Sıra No"])) {
+                        // Olusturan alanı boşsa düzelt
+                        if (!evrak.Olusturan || evrak.Olusturan === "") {
+                            evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
+                        }
+                        gecmisVeriler.push(evrak);
+                        yeniVar = true;
+                    }
+                });
+                
+                if (yeniVar) {
+                    gecmisVeriler.sort((a,b) => (a["Sıra No"]||0) - (b["Sıra No"]||0));
+                    saveToLocal();
+                    console.log("📥 Periyodik: Firebase'den yeni evraklar alındı. Toplam:", gecmisVeriler.length);
+                    
+                    if (!document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
+                        gecmisYukle();
+                    }
+                }
+            });
+            
+            // Mikro listesini de kontrol et
+            database.ref('sacKesim/mikroyeAktarilanEvraklar').once('value').then(function(ms) {
+                let fm = ms.val() || [];
+                let oncekiUzunluk = mikroyeAktarilanEvraklar.length;
+                mikroyeAktarilanEvraklar = [...new Set([...mikroyeAktarilanEvraklar, ...fm])];
+                
+                if (mikroyeAktarilanEvraklar.length !== oncekiUzunluk) {
+                    saveToLocal();
+                    console.log("🔒 Periyodik: Mikro listesi güncellendi:", mikroyeAktarilanEvraklar.length);
+                    
+                    if (!document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
+                        gecmisYukle();
+                    }
+                }
+            });
+        }
+    }, 30000); // 30 saniyede bir kontrol
+
     // ============ SAYFA BAŞLANGICI ============
     baslangicVerileriniYukle();
     
@@ -2125,7 +2258,15 @@
         document.getElementById("ozetTarih").value = 
             b.getFullYear() + '-' + String(b.getMonth() + 1).padStart(2, '0') + '-' + 
             String(b.getDate()).padStart(2, '0');
+        debugGuncelle();
     });
+    
+    console.log("✅ Sac Kesim Takip Sistemi v2.1 - DÜZELTİLMİŞ SÜRÜM Başladı!");
+    console.log("🔧 Düzeltmeler:");
+    console.log("  1. Oluşturan alanı artık doğru kullanıcıyı gösteriyor");
+    console.log("  2. Firebase senkronizasyonu birleştirme mantığı ile çalışıyor");
+    console.log("  3. Mikro listesi lokal ve Firebase verisi birleştiriliyor");
+    console.log("  4. Debug bilgisi eklendi - aktif kullanıcı görünür");
 </script>
 </body>
 </html>
