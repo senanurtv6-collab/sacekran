@@ -706,117 +706,107 @@
     }
 
     // DÜZELTME 2: loadFromFirebase - BİRLEŞTİRME mantığı (lokal veriyi koru)
-    function loadFromFirebase() {
-        console.log("🔄 Firebase'den veri yükleniyor...");
-        
-        // Lokal veriyi yedekle
-        let localGecmis = JSON.parse(JSON.stringify(gecmisVeriler));
-        let localMikro = JSON.parse(JSON.stringify(mikroyeAktarilanEvraklar));
-        let localSiraNo = siraNo;
-        
-        database.ref('sacKesim/').once('value').then(function(snapshot) {
-            const data = snapshot.val();
-            if (data) {
-                console.log("📥 Firebase verisi alındı");
-                
-                // Kullanıcıları al
-                if (data.kullanicilar) {
-                    // Firebase'deki kullanıcıları al ama lokal adminleri koru
-                    let fbKullanicilar = data.kullanicilar;
-                    // Admin kullanıcılarını garantiye al
-                    if (!fbKullanicilar["Muhammed"]) fbKullanicilar["Muhammed"] = "muhammed123";
-                    if (!fbKullanicilar["Burak"]) fbKullanicilar["Burak"] = "brk2468";
-                    kullanicilar = fbKullanicilar;
+    // DÜZELTİLMİŞ loadFromFirebase - Mikro listesi korunur
+function loadFromFirebase() {
+    console.log("🔄 Firebase'den veri yükleniyor...");
+    
+    // Lokal veriyi yedekle
+    let localGecmis = JSON.parse(JSON.stringify(gecmisVeriler));
+    let localMikro = JSON.parse(JSON.stringify(mikroyeAktarilanEvraklar));
+    let localSiraNo = siraNo;
+    
+    database.ref('sacKesim/').once('value').then(function(snapshot) {
+        const data = snapshot.val();
+        if (data) {
+            console.log("📥 Firebase verisi alındı");
+            
+            if (data.kullanicilar) {
+                let fbKullanicilar = data.kullanicilar;
+                if (!fbKullanicilar["Muhammed"]) fbKullanicilar["Muhammed"] = "muhammed123";
+                if (!fbKullanicilar["Burak"]) fbKullanicilar["Burak"] = "brk2468";
+                kullanicilar = fbKullanicilar;
+            }
+            
+            // Evrakları birleştir
+            let fbEvraklar = data.gecmisVeriler || [];
+            let birlesmisEvraklar = [];
+            let eklenenSiralar = new Set();
+            
+            fbEvraklar.forEach(function(evrak) {
+                if (!evrak.Olusturan || evrak.Olusturan === "") {
+                    evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
                 }
-                
-                // Evrakları BİRLEŞTİR
-                let fbEvraklar = data.gecmisVeriler || [];
-                let birlesmisEvraklar = [];
-                let eklenenSiralar = new Set();
-                
-                // Önce Firebase'dekileri ekle
-                fbEvraklar.forEach(function(evrak) {
-                    // Olusturan alanı yoksa veya boşsa düzelt
+                birlesmisEvraklar.push(evrak);
+                eklenenSiralar.add(evrak["Sıra No"]);
+            });
+            
+            let lokaldenEklenen = 0;
+            localGecmis.forEach(function(evrak) {
+                if (!eklenenSiralar.has(evrak["Sıra No"])) {
                     if (!evrak.Olusturan || evrak.Olusturan === "") {
                         evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
                     }
                     birlesmisEvraklar.push(evrak);
                     eklenenSiralar.add(evrak["Sıra No"]);
-                });
-                
-                // Sonra lokal'de olup Firebase'de olmayanları ekle
-                let lokaldenEklenen = 0;
-                localGecmis.forEach(function(evrak) {
-                    if (!eklenenSiralar.has(evrak["Sıra No"])) {
-                        if (!evrak.Olusturan || evrak.Olusturan === "") {
-                            evrak.Olusturan = evrak.Kullanıcı || "Bilinmiyor";
-                        }
-                        birlesmisEvraklar.push(evrak);
-                        eklenenSiralar.add(evrak["Sıra No"]);
-                        lokaldenEklenen++;
-                    }
-                });
-                
-                // Sıra numarasına göre sırala
-                birlesmisEvraklar.sort(function(a, b) {
-                    return (a["Sıra No"] || 0) - (b["Sıra No"] || 0);
-                });
-                
-                gecmisVeriler = birlesmisEvraklar;
-                console.log("📊 Birleştirme sonucu: Firebase'den", fbEvraklar.length, 
-                           "evrak, Lokal'den eklenen", lokaldenEklenen, 
-                           "evrak, Toplam:", gecmisVeriler.length);
-                
-                // Sıra numarasını güncelle (en büyüğünü al)
-                if (data.siraNo !== undefined) {
-                    siraNo = Math.max(localSiraNo, data.siraNo);
+                    lokaldenEklenen++;
                 }
-                
-                // Mikro listesini BİRLEŞTİR
-                let fbMikro = data.mikroyeAktarilanEvraklar || [];
-                mikroyeAktarilanEvraklar = [...new Set([...fbMikro, ...localMikro])];
-                console.log("🔒 Mikro listesi birleştirildi:", mikroyeAktarilanEvraklar.length, "evrak");
-                
-                // Diğer verileri al
-                if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
-                if (data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
-                if (data.stokBilgileri) stokBilgileri = decodeObjectFromFirebase(data.stokBilgileri);
-                if (data.plakaWeights) plakaWeights = decodeObjectFromFirebase(data.plakaWeights);
-                if (data.stokGruplari) stokGruplari = decodeObjectFromFirebase(data.stokGruplari);
-                
-                urunleriGuncelle();
-                saveToLocal();
-                updateSyncStatus(true);
-                
-                console.log("✅ Toplam birleştirilmiş evrak:", gecmisVeriler.length);
-                console.log("✅ Mikro'ya aktarılan evrak:", mikroyeAktarilanEvraklar.length);
-                
-                // Firebase'i güncel veriyle güncelle
-                setTimeout(function() {
-                    saveToFirebase();
-                }, 1000);
-                
-                // Arayüzü güncelle
-                if (aktifKullanici) {
-                    kullaniciRolGuncelle();
-                    stokDuzenleButonKontrol();
-                    debugGuncelle();
-                    if (document.getElementById("oncekiGirislerAlan") && 
-                        !document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
-                        gecmisListesiniGoster();
-                    }
-                }
-            } else {
-                console.log("📭 Firebase'de veri yok, lokal veriler yazılıyor...");
-                saveToFirebase();
+            });
+            
+            birlesmisEvraklar.sort(function(a, b) {
+                return (a["Sıra No"] || 0) - (b["Sıra No"] || 0);
+            });
+            
+            gecmisVeriler = birlesmisEvraklar;
+            
+            if (data.siraNo !== undefined) {
+                siraNo = Math.max(localSiraNo, data.siraNo);
             }
-        }).catch(function(error) {
-            console.error("❌ Firebase okuma hatası:", error);
-            updateSyncStatus(false);
-            // Lokal verilerle devam et
-            baslangicVerileriniYukle();
-        });
-    }
+            
+            // 🔧 MİKRO DÜZELTMESİ BURADA:
+            let fbMikro = data.mikroyeAktarilanEvraklar || [];
+            // Firebase ve local'i birleştir
+            mikroyeAktarilanEvraklar = [...new Set([...fbMikro, ...localMikro])];
+            console.log("🔒 Mikro listesi:", mikroyeAktarilanEvraklar.length, "evrak");
+            
+            if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
+            if (data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
+            if (data.stokBilgileri) stokBilgileri = decodeObjectFromFirebase(data.stokBilgileri);
+            if (data.plakaWeights) plakaWeights = decodeObjectFromFirebase(data.plakaWeights);
+            if (data.stokGruplari) stokGruplari = decodeObjectFromFirebase(data.stokGruplari);
+            
+            urunleriGuncelle();
+            saveToLocal();
+            updateSyncStatus(true);
+            
+            // 🔧 BİRLEŞTİRİLMİŞ MİKRO LİSTESİNİ FIREBASE'E GERİ YAZ
+            database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
+                console.log("✅ Mikro listesi Firebase'e kaydedildi");
+            });
+            
+            // Firebase'i güncel veriyle güncelle
+            setTimeout(function() {
+                saveToFirebase();
+            }, 1000);
+            
+            if (aktifKullanici) {
+                kullaniciRolGuncelle();
+                stokDuzenleButonKontrol();
+                debugGuncelle();
+                if (document.getElementById("oncekiGirislerAlan") && 
+                    !document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
+                    gecmisListesiniGoster();
+                }
+            }
+        } else {
+            console.log("📭 Firebase'de veri yok");
+            saveToFirebase();
+        }
+    }).catch(function(error) {
+        console.error("❌ Firebase okuma hatası:", error);
+        updateSyncStatus(false);
+        baslangicVerileriniYukle();
+    });
+}
 
     function kullaniciRolGuncelle() {
         const badge = document.getElementById("userRolBadge");
@@ -1492,31 +1482,36 @@
     }
 
     // Mikro durum değiştirme
-    window.mikroDurumDegistir = function(checkbox, siraNo) {
-        if (!isAdmin()) { 
-            alert("Bu işlem için admin yetkisi gereklidir!"); 
-            checkbox.checked = !checkbox.checked; 
-            return; 
-        }
+// DÜZELTİLMİŞ mikroDurumDegistir
+window.mikroDurumDegistir = function(checkbox, siraNo) {
+    if (!isAdmin()) { 
+        alert("Bu işlem için admin yetkisi gereklidir!"); 
+        checkbox.checked = !checkbox.checked; 
+        return; 
+    }
+    
+    if (!checkbox.checked && mikroyeAktarilanEvraklar.includes(siraNo)) {
+        alert("⚠️ Mikro'ya aktarıldı işareti bu ekrandan KALDIRILAMAZ!\n\n↩ Kaldırmak için:\n1. Detay sayfasına girin\n2. 'Düzenle' butonuna tıklayın\n3. 'Mikro Durumu'nu 'Bekliyor' olarak değiştirin\n4. Değişiklikleri kaydedin");
+        checkbox.checked = true;
+        return;
+    }
+    
+    if (checkbox.checked && !mikroyeAktarilanEvraklar.includes(siraNo)) {
+        mikroyeAktarilanEvraklar.push(siraNo);
+        console.log("✅ Mikro'ya aktarıldı: Sıra No " + siraNo);
         
-        if (!checkbox.checked && mikroyeAktarilanEvraklar.includes(siraNo)) {
-            alert("⚠️ Mikro'ya aktarıldı işareti bu ekrandan KALDIRILAMAZ!\n\n↩️ Kaldırmak için:\n1. Detay sayfasına girin\n2. 'Düzenle' butonuna tıklayın\n3. 'Mikro Durumu'nu 'Bekliyor' olarak değiştirin\n4. Değişiklikleri kaydedin");
-            checkbox.checked = true;
-            return;
-        }
+        // 🔧 HEMEN FIREBASE'E KAYDET
+        database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
+            console.log("✅ Mikro listesi Firebase'e kaydedildi");
+            saveToLocal();
+        }).catch(function(error) {
+            console.error("❌ Mikro kaydetme hatası:", error);
+        });
         
-        if (checkbox.checked && !mikroyeAktarilanEvraklar.includes(siraNo)) {
-            mikroyeAktarilanEvraklar.push(siraNo);
-            console.log("✅ Mikro'ya aktarıldı: Sıra No " + siraNo);
-            // Firebase'e hemen kaydet
-            database.ref('sacKesim/mikroyeAktarilanEvraklar').set(mikroyeAktarilanEvraklar).then(function() {
-                console.log("✅ Mikro listesi Firebase'e kaydedildi");
-                saveToLocal();
-            });
-            checkbox.disabled = true;
-            setTimeout(function(){ gecmisYukle(); }, 300);
-        }
-    };
+        checkbox.disabled = true;
+        setTimeout(function(){ gecmisYukle(); }, 300);
+    }
+};
 
     function filtreUygula() {
         let s = document.getElementById("filtre_seri").value.toLowerCase();
