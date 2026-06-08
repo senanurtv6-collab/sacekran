@@ -346,16 +346,17 @@
                 </div>
             </div>
             
-            <div class="filtre-satir">
-                <div><label>Seri No</label><input type="text" id="filtre_seri" placeholder="Filtrele..."></div>
-                <div><label>Sıra No</label><input type="text" id="filtre_sira" placeholder="Filtrele..."></div>
-                <div><label>Grup</label><select id="filtre_grup"><option value="">-- Tümü --</option><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option><option value="HRD">HRD</option></select></div>
-                <div><label>Durum</label><select id="filtre_durum"><option value="">-- Tümü --</option><option value="bekliyor">Bekliyor</option><option value="mikro">Mikro'ya Aktarıldı</option><option value="duzenlendi">Düzenlendi</option></select></div>
-                <div style="display:flex; align-items:flex-end; gap:10px;">
-                    <button class="btn btn-secondary" id="filtreUygulaBtn">🔍 Filtre</button>
-                    <button class="btn btn-danger" id="filtreTemizleBtn">🗑️ Temizle</button>
-                </div>
-            </div>
+<div class="filtre-satir">
+    <div><label>Seri No</label><input type="text" id="filtre_seri" placeholder="Filtrele..."></div>
+    <div><label>Sıra No</label><input type="text" id="filtre_sira" placeholder="Filtrele..."></div>
+    <div><label>Grup</label><select id="filtre_grup"><option value="">-- Tümü --</option><option value="430">430</option><option value="DKP">DKP</option><option value="GALVANIZ">GALVANİZ</option><option value="304">304</option><option value="316">316</option><option value="201">201</option><option value="HRD">HRD</option></select></div>
+    <div><label>Durum</label><select id="filtre_durum"><option value="">-- Tümü --</option><option value="bekliyor">Bekliyor</option><option value="mikro">Mikro'ya Aktarıldı</option><option value="duzenlendi">Düzenlendi</option></select></div>
+    <div><label>📅 Kayıt Tarihi</label><input type="date" id="filtre_tarih"></div>
+    <div style="display:flex; align-items:flex-end; gap:10px;">
+        <button class="btn btn-secondary" id="filtreUygulaBtn">🔍 Filtre</button>
+        <button class="btn btn-danger" id="filtreTemizleBtn">🗑️ Temizle</button>
+    </div>
+</div>
             <div class="excel-actions">
                 <div class="select-info">✅ <span id="seciliSayi">0</span> evrak seçili</div>
                 <div>
@@ -1521,41 +1522,51 @@ window.mikroDurumDegistir = function(checkbox, siraNo) {
     }
 };
 
-    function filtreUygula() {
-        let s = document.getElementById("filtre_seri").value.toLowerCase();
-        let si = document.getElementById("filtre_sira").value.toLowerCase();
-        let g = document.getElementById("filtre_grup").value;
-        let df = document.getElementById("filtre_durum").value;
+function filtreUygula() {
+    let s = document.getElementById("filtre_seri").value.toLowerCase();
+    let si = document.getElementById("filtre_sira").value.toLowerCase();
+    let g = document.getElementById("filtre_grup").value;
+    let df = document.getElementById("filtre_durum").value;
+    let ft = document.getElementById("filtre_tarih").value; // 🆕 Tarih filtresi
+    
+    filteredVeriler = gecmisVeriler.filter(function(row) {
+        if (s && !row["Seri No"].toString().toLowerCase().includes(s)) return false;
+        if (si && !row["Sıra No"].toString().toLowerCase().includes(si)) return false;
+        if (g && row["Grup"] !== g) return false;
         
-        filteredVeriler = gecmisVeriler.filter(function(row) {
-            if (s && !row["Seri No"].toString().toLowerCase().includes(s)) return false;
-            if (si && !row["Sıra No"].toString().toLowerCase().includes(si)) return false;
-            if (g && row["Grup"] !== g) return false;
-            if (df) { 
-                let d = getDurum(row); 
-                if (df === "bekliyor" && !d.includes("Bekliyor")) return false; 
-                if (df === "mikro" && !d.includes("Mikro'ya")) return false; 
-                if (df === "duzenlendi" && !d.includes("Düzenlendi")) return false; 
-            }
-            return true;
-        });
-    }
+        // 🆕 Tarih filtresi
+        if (ft) {
+            let p = ft.split('-'); // 2026-06-08 → ["2026","06","08"]
+            let arananTarih = p[2] + '.' + p[1] + '.' + p[0]; // "08.06.2026"
+            if (row["Kayıt Tarihi"] !== arananTarih) return false;
+        }
+        
+        if (df) { 
+            let d = getDurum(row); 
+            if (df === "bekliyor" && !d.includes("Bekliyor")) return false; 
+            if (df === "mikro" && !d.includes("Mikro'ya")) return false; 
+            if (df === "duzenlendi" && !d.includes("Düzenlendi")) return false; 
+        }
+        return true;
+    });
+}
     
     document.getElementById("filtreUygulaBtn").onclick = function() {
         currentPage = 1; 
         seciliEvrakIndisleri.clear(); 
         gecmisYukle();
     };
-    
-    document.getElementById("filtreTemizleBtn").onclick = function() {
-        document.getElementById("filtre_seri").value = "";
-        document.getElementById("filtre_sira").value = "";
-        document.getElementById("filtre_grup").value = "";
-        document.getElementById("filtre_durum").value = "";
-        currentPage = 1; 
-        seciliEvrakIndisleri.clear(); 
-        gecmisYukle();
-    };
+
+document.getElementById("filtreTemizleBtn").onclick = function() {
+    document.getElementById("filtre_seri").value = "";
+    document.getElementById("filtre_sira").value = "";
+    document.getElementById("filtre_grup").value = "";
+    document.getElementById("filtre_durum").value = "";
+    document.getElementById("filtre_tarih").value = ""; // 🆕
+    currentPage = 1; 
+    seciliEvrakIndisleri.clear(); 
+    gecmisYukle();
+};
     
     window.sayfaDegistir = function(p) {
         currentPage = p; 
