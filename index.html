@@ -597,6 +597,10 @@
         gecmisYukle();
     }
     window.sortTable = sortTable;
+function getSortArrow(col) {
+    if (sortColumn === col) return ' <span class="sort-arrow">' + (sortDirection === 'asc' ? '▲' : '▼') + '</span>';
+    return ' <span class="sort-arrow" style="color:#888;">⇅</span>';
+}
 
     // ============ LOGIN ============
     document.getElementById("loginBtn").onclick=function(){let u=document.getElementById("loginUsername").value.trim(); let p=document.getElementById("loginPassword").value.trim(); if(kullanicilar[u]&&kullanicilar[u]===p){aktifKullanici=u; document.getElementById("loginPage").style.display="none"; document.getElementById("mainPage").style.display="block"; document.getElementById("currentUser").textContent=u; kullaniciRolGuncelle(); stokDuzenleButonKontrol(); anaSayfayaDon(); document.getElementById("loginError").style.display="none"; loadFromFirebase();}else{document.getElementById("loginError").style.display="block";}};
@@ -700,11 +704,7 @@
         let tp=Math.ceil(filteredVeriler.length/pageSize); if(currentPage>tp&&tp>0)currentPage=tp; if(currentPage<1)currentPage=1;
         let st=(currentPage-1)*pageSize; let pd=filteredVeriler.slice(st,st+pageSize);
         
-        // Sıralama okları için yardımcı fonksiyon
-        function getSortArrow(col) {
-            if (sortColumn === col) return ' <span class="sort-arrow">' + (sortDirection === 'asc' ? '▲' : '▼') + '</span>';
-            return ' <span class="sort-arrow" style="color:#888;">⇅</span>';
-        }
+
         
         let h='<table><thead><tr><th class="checkbox-col"><input type="checkbox" id="selectAllCheckbox"></th>';
         h+='<th class="sortable" onclick="sortTable(\'seri\')">Seri No'+getSortArrow('seri')+'</th>';
