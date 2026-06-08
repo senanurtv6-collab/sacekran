@@ -535,8 +535,8 @@
     let isOnline = false;
     let ozetModu = "tum";
     let seciliOzetTarih = "";
-    let currentSortColumn = 'siraNo';
-    let currentSortDirection = 'desc';
+let currentSortColumn = 'kayitTarihi';
+let currentSortDirection = 'desc';
     let urunler = {};
     
     // YENİ: Senkronizasyon kilit mekanizması
@@ -897,15 +897,20 @@ function loadFromFirebase() {
         }
         filtreUygula();
         filteredVeriler = sortData(filteredVeriler, currentSortColumn, currentSortDirection);
-        let isimler = {
-            seriNo:'Seri No', siraNo:'Sıra No', grup:'Grup', 
-            olusturan:'Oluşturan', kayitTarihi:'Kayıt Tarihi', 
-            kayitSaati:'Kayıt Saati', duzenlemeTarihi:'Düzenleme Tarihi', durum:'Durum'
-        };
+ let isimler = {
+        seriNo:'Seri No', siraNo:'Sıra No', grup:'Grup', 
+        olusturan:'Oluşturan', kayitTarihi:'Kayıt Tarihi', 
+        kayitSaati:'Kayıt Saati', duzenlemeTarihi:'Düzenleme Tarihi', durum:'Durum'
+    };
+    
+    if (currentSortColumn === 'kayitTarihi' && currentSortDirection === 'desc') {
+        document.getElementById("siralamaBilgi").textContent = '🔤 Sıralama: Kayıt Tarihi - 🔽 Yeni → Eski';
+    } else {
         document.getElementById("siralamaBilgi").textContent = 
-            '🔤 Sıralama: ' + isimler[sutun] + ' - ' + 
+            '🔤 Sıralama: ' + isimler[currentSortColumn] + ' - ' + 
             (currentSortDirection==='asc'?'🔼 A→Z':'🔽 Z→A');
-        document.getElementById("siralamaBilgi").style.display = 'inline-block';
+    }
+    document.getElementById("siralamaBilgi").style.display = 'inline-block';
         currentPage = 1; 
         gecmisYukle();
     }
@@ -1324,43 +1329,50 @@ function syncData() {
 }
 
     // ============ ÖNCEKİ GİRİŞLER ============
-    function gecmisListesiniGoster() {
-        document.getElementById("yeniGirisAlan").classList.add("hidden");
-        document.getElementById("oncekiGirislerAlan").classList.remove("hidden");
-        document.getElementById("ayarlarAlan").classList.add("hidden");
-        document.getElementById("stokDuzenleAlan").classList.add("hidden");
-        
-        let ya = document.getElementById("yetkiBilgiAlani");
-        if (isStandartKullanici()) 
-            ya.innerHTML = '<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Mikro\'ya aktarılmış evraklar kilitlidir. Sadece <strong>Muhammed & Burak</strong> düzenleyebilir ve silebilir.</div>';
-        else if (isAdmin()) 
-            ya.innerHTML = '<div class="kilitli-bilgi" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32;"><span class="kilit-icon">👑</span> Admin yetkisi: Tüm evrakları düzenleyebilir, silebilir ve Mikro durumunu yönetebilirsiniz.</div>';
-        else 
-            ya.innerHTML = '';
-        
-        // Veri tutarlılığını sağla
-        gecmisVeriler = gecmisVeriler.map(function(e) {
-            if (!e.Olusturan || e.Olusturan === "") e.Olusturan = e.Kullanıcı || "Bilinmiyor";
-            if (!e.hasOwnProperty("Duzenlendi")) e.Duzenlendi = false;
-            if (!e.hasOwnProperty("Duzenleyen")) e.Duzenleyen = "";
-            if (!e.hasOwnProperty("DuzenlemeTarihi")) e.DuzenlemeTarihi = "";
-            if (!e["Seri No"] || e["Seri No"] === "SAC1") e["Seri No"] = SERI_NO;
-            if (!e["Kayıt Tarihi"]) e["Kayıt Tarihi"] = "";
-            if (!e["Kayıt Saati"]) e["Kayıt Saati"] = "";
-            return e;
-        });
-        
-        filteredVeriler = gecmisVeriler.slice();
-        filteredVeriler = sortData(filteredVeriler, currentSortColumn, currentSortDirection);
-        currentPage = 1; 
-        seciliEvrakIndisleri.clear();
-        
-        if (ozetModu === "tarih" && seciliOzetTarih) ozetHesapla(); 
-        else ozetTumZaman();
-        
-        gecmisYukle();
-    }
-
+function gecmisListesiniGoster() {
+    document.getElementById("yeniGirisAlan").classList.add("hidden");
+    document.getElementById("oncekiGirislerAlan").classList.remove("hidden");
+    document.getElementById("ayarlarAlan").classList.add("hidden");
+    document.getElementById("stokDuzenleAlan").classList.add("hidden");
+    
+    // 🔧 HER SEFERİNDE KAYIT TARİHİNE GÖRE YENİDEN ESKİYE SIRALA
+    currentSortColumn = 'kayitTarihi';
+    currentSortDirection = 'desc';
+    
+    let ya = document.getElementById("yetkiBilgiAlani");
+    if (isStandartKullanici()) 
+        ya.innerHTML = '<div class="kilitli-bilgi"><span class="kilit-icon">🔒</span> Mikro\'ya aktarılmış evraklar kilitlidir. Sadece <strong>Muhammed & Burak</strong> düzenleyebilir ve silebilir.</div>';
+    else if (isAdmin()) 
+        ya.innerHTML = '<div class="kilitli-bilgi" style="background:#e8f5e9;border-color:#4caf50;color:#2e7d32;"><span class="kilit-icon">👑</span> Admin yetkisi: Tüm evrakları düzenleyebilir, silebilir ve Mikro durumunu yönetebilirsiniz.</div>';
+    else 
+        ya.innerHTML = '';
+    
+    // Veri tutarlılığını sağla
+    gecmisVeriler = gecmisVeriler.map(function(e) {
+        if (!e.Olusturan || e.Olusturan === "") e.Olusturan = e.Kullanıcı || "Bilinmiyor";
+        if (!e.hasOwnProperty("Duzenlendi")) e.Duzenlendi = false;
+        if (!e.hasOwnProperty("Duzenleyen")) e.Duzenleyen = "";
+        if (!e.hasOwnProperty("DuzenlemeTarihi")) e.DuzenlemeTarihi = "";
+        if (!e["Seri No"] || e["Seri No"] === "SAC1") e["Seri No"] = SERI_NO;
+        if (!e["Kayıt Tarihi"]) e["Kayıt Tarihi"] = "";
+        if (!e["Kayıt Saati"]) e["Kayıt Saati"] = "";
+        return e;
+    });
+    
+    filteredVeriler = gecmisVeriler.slice();
+    filteredVeriler = sortData(filteredVeriler, currentSortColumn, currentSortDirection);
+    currentPage = 1; 
+    seciliEvrakIndisleri.clear();
+    
+    // Sıralama bilgisini göster
+    document.getElementById("siralamaBilgi").textContent = '🔤 Sıralama: Kayıt Tarihi - 🔽 Yeni → Eski';
+    document.getElementById("siralamaBilgi").style.display = 'inline-block';
+    
+    if (ozetModu === "tarih" && seciliOzetTarih) ozetHesapla(); 
+    else ozetTumZaman();
+    
+    gecmisYukle();
+}
     function gecmisYukle() {
         let c = document.getElementById("gecmisTablosu");
         let ks = document.getElementById("kayitSayisi");
