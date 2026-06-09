@@ -515,8 +515,7 @@ function loadFromFirebase() {
             if(data.silinenSiralar) silinenSiralar = data.silinenSiralar;
             if(data.aktarilanEvraklar) aktarilanEvraklar = data.aktarilanEvraklar;
             if(data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
-            if(data.stokBilgileri) stokBilgileri = data.stokBilgileri;
-            // Stok kodlarındaki _DOT_ ifadelerini . (nokta) ile değiştir
+// Stok kodlarındaki _DOT_ ifadelerini . (nokta) ile değiştir (temizleme)
 if(data.stokBilgileri) {
     let temizStok = {};
     Object.keys(data.stokBilgileri).forEach(k => {
@@ -524,11 +523,8 @@ if(data.stokBilgileri) {
         temizStok[yeniKod] = data.stokBilgileri[k];
     });
     stokBilgileri = temizStok;
-} else {
-    stokBilgileri = data.stokBilgileri;
 }
 
-// Aynısını plakaWeights için de yap
 if(data.plakaWeights) {
     let temizPlaka = {};
     Object.keys(data.plakaWeights).forEach(k => {
@@ -538,7 +534,6 @@ if(data.plakaWeights) {
     plakaWeights = temizPlaka;
 }
 
-// Aynısını stokGruplari için de yap
 if(data.stokGruplari) {
     let temizGrup = {};
     Object.keys(data.stokGruplari).forEach(k => {
@@ -547,8 +542,6 @@ if(data.stokGruplari) {
     });
     stokGruplari = temizGrup;
 }
-            if(data.plakaWeights) plakaWeights = data.plakaWeights;
-            if(data.stokGruplari) stokGruplari = data.stokGruplari;
             if(data.kullanicilar) kullanicilar = data.kullanicilar;
             kullanicilar["Muhammed"] = "mhm1234";
             urunleriGuncelle();
