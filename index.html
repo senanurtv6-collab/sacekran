@@ -192,6 +192,11 @@
         .miktar-input { width: 65px; padding: 4px; text-align: center; border: 1px solid #4fc3f7; background: #fff; }
         .plaka-display { width: 65px; padding: 4px; text-align: center; background: #f0f0f0; border: 1px solid #ddd; font-size: 12px; }
         .toplam-display { width: 70px; padding: 4px; text-align: center; background: #e8f8e8; font-weight: bold; border: 1px solid #ddd; font-size: 12px; }
+        
+        .kullanici-filtre-bilgi {
+            background: #e3f2fd; border: 1px solid #2196f3; padding: 8px 15px;
+            border-radius: 6px; margin-bottom: 10px; color: #1565c0; font-size: 13px;
+        }
     </style>
 </head>
 <body>
@@ -266,6 +271,7 @@
         <div id="oncekiGirislerAlan" class="hidden">
             <h2>📂 Önceki Girişler</h2>
             <div id="yetkiBilgiAlani"></div>
+            <div id="kullaniciFiltreBilgi" class="kullanici-filtre-bilgi" style="display:none;"></div>
             
             <div class="ozet-tarih-secim">
                 <div><label>📅 Özet Tarihi Seçin:</label><input type="date" id="ozetTarihInput"></div>
@@ -438,6 +444,14 @@ function isAdmin() { return adminKullanicilar.includes(aktifKullanici); }
 function evrakAktarildiMi(evrak) { return aktarilanEvraklar.includes(evrak["Sıra No"]); }
 function kullaniciEvragiDuzenleyebilirMi(evrak) { return isAdmin() ? true : !evrakAktarildiMi(evrak); }
 function kullaniciEvragiSilebilirMi(evrak) { return isAdmin() ? true : !evrakAktarildiMi(evrak); }
+
+// ★★★ YENİ FONKSİYON: Aktif kullanıcının görebileceği evrakları filtrele ★★★
+function kullaniciGorebilirMi(evrak) {
+    // Admin kullanıcılar tüm evrakları görebilir
+    if(isAdmin()) return true;
+    // Normal kullanıcılar sadece kendi oluşturdukları evrakları görebilir
+    return evrak["Olusturan"] === aktifKullanici;
+}
 
 function parseNumber(v) { if(typeof v==='number') return v; if(!v) return 0; let n=parseFloat(v.toString().replace(',','.')); return isNaN(n)?0:n; }
 function formatNumber(n) { return parseNumber(n).toFixed(2); }
@@ -776,11 +790,20 @@ function gecmisListesiniGoster() {
     document.getElementById("stokDuzenleAlan").classList.add("hidden");
     
     let ya = document.getElementById("yetkiBilgiAlani");
-    if(isAdmin()) ya.innerHTML = '<div class="kilitli-bilgi"><span>👑</span> Admin yetkisi: Tüm evrakları düzenleyebilir/silebilirsiniz.</div>';
-    else ya.innerHTML = '<div class="kilitli-bilgi"><span>🔒</span> Excel\'e aktarılmış evraklar kilitlidir. Sadece Admin düzenleyebilir/silebilir.</div>';
+    let kfb = document.getElementById("kullaniciFiltreBilgi");
+    
+    if(isAdmin()) {
+        ya.innerHTML = '<div class="kilitli-bilgi"><span>👑</span> Admin yetkisi: Tüm kullanıcıların evraklarını görüntüleyebilir, düzenleyebilir/silebilirsiniz.</div>';
+        kfb.style.display = "none";
+    } else {
+        ya.innerHTML = '<div class="kilitli-bilgi"><span>🔒</span> Sadece kendi oluşturduğunuz evrakları görüntüleyebilirsiniz. Excel\'e aktarılmış evraklar kilitlidir.</div>';
+        kfb.style.display = "block";
+        kfb.innerHTML = '👁️ <strong>' + aktifKullanici + '</strong> olarak sadece <strong>kendi oluşturduğunuz</strong> evraklar listelenmektedir.';
+    }
     
     gecmisVeriler = gecmisVeriler.filter(e => !silinenSiralar.includes(e["Sıra No"]));
-    filteredVeriler = [...gecmisVeriler];
+    // ★★★ TÜM VERİLERİ DEĞİL, SADECE KULLANICININ GÖREBİLECEĞİ VERİLERİ filteredVeriler'E AL ★★★
+    filteredVeriler = gecmisVeriler.filter(e => kullaniciGorebilirMi(e));
     currentPage = 1;
     seciliEvrakIndisleri.clear();
     document.getElementById("ozetTarihInput").value = seciliOzetTarih || "";
@@ -792,6 +815,7 @@ function gecmisListesiniGoster() {
 function ozetiGuncelle() {
     let oa = document.getElementById("ozetAlani");
     let oi = document.getElementById("ozetIcerik");
+    // ★★★ Özet hesaplamasında da sadece kullanıcının görebileceği evrakları kullan ★★★
     let hedef = seciliOzetTarih ? filteredVeriler.filter(e => e["Kayıt Tarihi"] === new Date(seciliOzetTarih).toLocaleDateString('tr-TR')) : filteredVeriler;
     if(hedef.length === 0) { oa.style.display = "none"; return; }
     oa.style.display = "block";
@@ -823,7 +847,12 @@ function filtreUygula() {
     let si = document.getElementById("filtre_sira").value.toLowerCase();
     let g = document.getElementById("filtre_grup").value;
     let ft = document.getElementById("filtre_tarih").value;
-    filteredVeriler = gecmisVeriler.filter(r => {
+    
+    // ★★★ ÖNCE KULLANICI İZNİNE GÖRE FİLTRELE, SONRA DİĞER FİLTRELERİ UYGULA ★★★
+    filteredVeriler = gecmisVeriler.filter(r => kullaniciGorebilirMi(r));
+    
+    // Diğer filtreleri uygula
+    filteredVeriler = filteredVeriler.filter(r => {
         if(s && !r["Seri No"].toString().toLowerCase().includes(s)) return false;
         if(si && !r["Sıra No"].toString().toLowerCase().includes(si)) return false;
         if(g && r["Grup"] !== g) return false;
@@ -848,7 +877,11 @@ function getSortArrow(col) {
 function gecmisYukle() {
     let c = document.getElementById("gecmisTablosu");
     let ks = document.getElementById("kayitSayisi");
-    if(gecmisVeriler.length === 0) {
+    
+    // ★★★ Toplam gösterilebilir evrak sayısını hesapla ★★★
+    let toplamGorunur = gecmisVeriler.filter(e => kullaniciGorebilirMi(e)).length;
+    
+    if(gecmisVeriler.length === 0 || toplamGorunur === 0) {
         c.innerHTML = "<p style='padding:30px;text-align:center;color:#999;'>Henüz kayıt bulunmuyor.</p>";
         ks.textContent = "Toplam: 0 evrak";
         document.getElementById("paginationContainer").innerHTML = "";
@@ -877,7 +910,9 @@ function gecmisYukle() {
     }
     
     ozetiGuncelle();
-    ks.textContent = "Toplam: " + gecmisVeriler.length + " evrak | Gösterilen: " + filteredVeriler.length;
+    // ★★★ Kayıt sayısı bilgisini güncelle (görünen / toplam) ★★★
+    ks.textContent = "Gösterilen: " + toplamGorunur + " evrak | Filtrelenen: " + filteredVeriler.length;
+    
     let tp = Math.ceil(filteredVeriler.length / pageSize);
     if(currentPage > tp && tp > 0) currentPage = tp;
     if(currentPage < 1) currentPage = 1;
@@ -894,6 +929,7 @@ function gecmisYukle() {
     h += '<th>İşlem</th></tr></thead><tbody>';
     
     pd.forEach(r => {
+        // ★★★ filteredVeriler içindeki index'i değil, gecmisVeriler içindeki gerçek index'i bul ★★★
         let gi = gecmisVeriler.indexOf(r);
         let ch = seciliEvrakIndisleri.has(gi) ? 'checked' : '';
         let kl = evrakAktarildiMi(r);
@@ -981,7 +1017,6 @@ document.getElementById("seciliExceleAktarBtn").onclick = function() {
     filteredVeriler = [...gecmisVeriler];
     gecmisYukle();
     alert(secilen.length + " evrak Excel'e aktarıldı! ✅");
-
 };
 
 document.getElementById("tumunuSecBtn").onclick = function() {
@@ -1162,6 +1197,9 @@ document.getElementById("ayarlarBtn").onclick = function() {
     else ayarlarSayfasiniAc();
 };
 
+let bekleyenIslem = null;
+let bekleyenIdx = null;
+
 document.getElementById("adminOnayBtn").onclick = function() {
     let au = document.getElementById("adminUsername").value.trim();
     let ap = document.getElementById("adminPassword").value.trim();
@@ -1305,8 +1343,9 @@ window.onclick = function(e) { if(e.target.classList.contains('modal')) e.target
 
 loadFromLocal();
 console.log("✅ Sac Kesim Takip Sistemi Hazır");
-console.log("👑 Admin: Muhammed/mhm1234, Burak/brk2468");
-console.log("👤 Kullanıcılar: SAC1/sac1sac, SAC2/2sac2, SAC3/sac3sac, SAC4/4sac4");
+console.log("👑 Admin: Muhammed/mhm1234, Burak/brk2468 - Tüm evrakları görebilir");
+console.log("👤 Kullanıcılar: SAC1/sac1sac, SAC2/2sac2, SAC3/sac3sac, SAC4/4sac4 - Sadece kendi evraklarını görebilir");
+console.log("🔒 Kullanıcı bazlı filtreleme aktif!");
 </script>
 </body>
 </html>
