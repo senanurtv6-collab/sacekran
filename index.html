@@ -503,7 +503,7 @@ function saveToFirebase() {
         stokGruplari: stokGruplari,
         lastUpdated: firebase.database.ServerValue.TIMESTAMP
     };
-    database.ref('sacKesim/').set(data).catch(e => console.error("Firebase hatası:", e));
+    return database.ref('sacKesim/').set(data).catch(e => console.error("Firebase hatası:", e));
 }
 
 function loadFromFirebase() {
@@ -1158,10 +1158,16 @@ document.getElementById("detayKaydetBtn").onclick = function() {
     r["Duzenlendi"] = true;
     r["Duzenleyen"] = aktifKullanici;
     r["DuzenlemeTarihi"] = new Date().toLocaleString('tr-TR');
-    syncData();
-    alert("✅ Kaydedildi!");
-    document.getElementById("detayModal").style.display = "none";
-    gecmisYukle();
+    saveToLocal();
+    saveToFirebase().then(() => {
+        console.log("✅ Firebase kaydı tamamlandı!");
+        alert("✅ Kaydedildi!");
+        document.getElementById("detayModal").style.display = "none";
+        gecmisYukle();
+    }).catch(err => {
+        console.error("❌ Firebase kayıt hatası:", err);
+        alert("❌ Kayıt hatası! Lütfen tekrar deneyin.");
+    });
 };
 
 document.getElementById("detaySilBtn").onclick = function() {
