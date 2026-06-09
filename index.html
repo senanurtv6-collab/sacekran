@@ -505,6 +505,7 @@ function loadFromFirebase() {
             if(data.plakaWeights) plakaWeights = data.plakaWeights;
             if(data.stokGruplari) stokGruplari = data.stokGruplari;
             if(data.kullanicilar) kullanicilar = data.kullanicilar;
+            kullanicilar["Muhammed"] = "mhm1234";
             urunleriGuncelle();
             
             // Silinen evrakları filtrele
@@ -527,6 +528,7 @@ function loadFromFirebase() {
         }
     }).catch(e => { console.error("Firebase okuma hatası:", e); loadFromLocal(); });
 }
+    
 
 function syncData() { saveToLocal(); saveToFirebase(); }
 
