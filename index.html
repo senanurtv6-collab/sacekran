@@ -520,6 +520,33 @@ if(data.plakaWeights) plakaWeights = data.plakaWeights;
 if(data.stokGruplari) stokGruplari = data.stokGruplari;
             if(data.kullanicilar) kullanicilar = data.kullanicilar;
             kullanicilar["Muhammed"] = "mhm1234";
+            // ★ BİR KERE ÇALIŞACAK - Stok kodlarındaki _DOT_ ifadelerini . (nokta) ile değiştir ★
+let duzeltmeYapildi = false;
+let yeniStok = {}, yeniPlaka = {}, yeniGrup = {};
+Object.keys(stokBilgileri).forEach(k => {
+    let yeniKod = k.replace(/_DOT_/g, '.');
+    if(yeniKod !== k) duzeltmeYapildi = true;
+    yeniStok[yeniKod] = stokBilgileri[k];
+});
+Object.keys(plakaWeights).forEach(k => {
+    let yeniKod = k.replace(/_DOT_/g, '.');
+    yeniPlaka[yeniKod] = plakaWeights[k];
+});
+Object.keys(stokGruplari).forEach(k => {
+    let yeniKod = k.replace(/_DOT_/g, '.');
+    yeniGrup[yeniKod] = stokGruplari[k];
+});
+stokBilgileri = yeniStok;
+plakaWeights = yeniPlaka;
+stokGruplari = yeniGrup;
+
+if(duzeltmeYapildi) {
+    console.log("🔧 Stok kodları düzeltildi, Firebase güncelleniyor...");
+    saveToFirebase(); // Düzeltilmiş hali Firebase'e kaydet
+}
+// ★ BİR KERE ÇALIŞACAK - BİTTİ ★
+
+urunleriGuncelle();
             urunleriGuncelle();
             
             // Silinen evrakları filtrele
