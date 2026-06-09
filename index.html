@@ -498,24 +498,6 @@ function loadFromFirebase() {
                 });
             });
             
-            if(duzeltmeYapildi) {
-                console.log("🔧 TÜM VERİLER DÜZELTİLDİ! Firebase'e kaydediliyor...");
-                // HEMEN Firebase'e kaydet
-                const temizData = {
-                    kullanicilar: kullanicilar,
-                    gecmisVeriler: gecmisVeriler,
-                    siraNo: siraNo,
-                    silinenSiralar: silinenSiralar,
-                    aktarilanEvraklar: aktarilanEvraklar,
-                    silinenEvraklarArsivi: silinenEvraklarArsivi,
-                    stokBilgileri: stokBilgileri,
-                    plakaWeights: plakaWeights,
-                    stokGruplari: stokGruplari,
-                    lastUpdated: firebase.database.ServerValue.TIMESTAMP
-                };
-                database.ref('sacKesim/').set(temizData);
-            }
-            // ★★★ BİTTİ ★★★
             kullanicilar["Muhammed"] = "mhm1234";
             urunleriGuncelle();
             gecmisVeriler = gecmisVeriler.filter(e => !silinenSiralar.includes(e["Sıra No"]));
