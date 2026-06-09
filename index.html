@@ -515,33 +515,9 @@ function loadFromFirebase() {
             if(data.silinenSiralar) silinenSiralar = data.silinenSiralar;
             if(data.aktarilanEvraklar) aktarilanEvraklar = data.aktarilanEvraklar;
             if(data.silinenEvraklarArsivi) silinenEvraklarArsivi = data.silinenEvraklarArsivi;
-// Stok kodlarındaki _DOT_ ifadelerini . (nokta) ile değiştir (temizleme)
-if(data.stokBilgileri) {
-    let temizStok = {};
-    Object.keys(data.stokBilgileri).forEach(k => {
-        let yeniKod = k.replace(/_DOT_/g, '.');
-        temizStok[yeniKod] = data.stokBilgileri[k];
-    });
-    stokBilgileri = temizStok;
-}
-
-if(data.plakaWeights) {
-    let temizPlaka = {};
-    Object.keys(data.plakaWeights).forEach(k => {
-        let yeniKod = k.replace(/_DOT_/g, '.');
-        temizPlaka[yeniKod] = data.plakaWeights[k];
-    });
-    plakaWeights = temizPlaka;
-}
-
-if(data.stokGruplari) {
-    let temizGrup = {};
-    Object.keys(data.stokGruplari).forEach(k => {
-        let yeniKod = k.replace(/_DOT_/g, '.');
-        temizGrup[yeniKod] = data.stokGruplari[k];
-    });
-    stokGruplari = temizGrup;
-}
+            if(data.stokBilgileri) stokBilgileri = data.stokBilgileri;
+if(data.plakaWeights) plakaWeights = data.plakaWeights;
+if(data.stokGruplari) stokGruplari = data.stokGruplari;
             if(data.kullanicilar) kullanicilar = data.kullanicilar;
             kullanicilar["Muhammed"] = "mhm1234";
             urunleriGuncelle();
