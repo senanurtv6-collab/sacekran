@@ -110,34 +110,271 @@ function formatNumberDisplay(n){return formatNumber(n).replace('.',',');}
 function saveToLocal(){localStorage.setItem("kullanicilar",JSON.stringify(kullanicilar));localStorage.setItem("gecmisVeriler",JSON.stringify(gecmisVeriler));localStorage.setItem("siraNo",siraNo);localStorage.setItem("silinenSiralar",JSON.stringify(silinenSiralar));localStorage.setItem("aktarilanEvraklar",JSON.stringify(aktarilanEvraklar));localStorage.setItem("silinenEvraklarArsivi",JSON.stringify(silinenEvraklarArsivi));localStorage.setItem("stokBilgileri",JSON.stringify(stokBilgileri));localStorage.setItem("plakaWeights",JSON.stringify(plakaWeights));localStorage.setItem("stokGruplari",JSON.stringify(stokGruplari));}
 function loadFromLocal(){let gv=localStorage.getItem("gecmisVeriler");if(gv)gecmisVeriler=JSON.parse(gv);let sn=localStorage.getItem("siraNo");if(sn)siraNo=parseInt(sn);let ss=localStorage.getItem("silinenSiralar");if(ss)silinenSiralar=JSON.parse(ss);let ae=localStorage.getItem("aktarilanEvraklar");if(ae)aktarilanEvraklar=JSON.parse(ae);let sea=localStorage.getItem("silinenEvraklarArsivi");if(sea)silinenEvraklarArsivi=JSON.parse(sea);let sb=localStorage.getItem("stokBilgileri");if(sb)stokBilgileri=JSON.parse(sb);let pw=localStorage.getItem("plakaWeights");if(pw)plakaWeights=JSON.parse(pw);let sg=localStorage.getItem("stokGruplari");if(sg)stokGruplari=JSON.parse(sg);urunleriGuncelle();}
 
-function saveToFirebase(){
-    let guvenliStok={};Object.keys(stokBilgileri).forEach(k=>{guvenliStok[k.replace(/\./g,'_DOT_')]=stokBilgileri[k];});
-    let guvenliPlaka={};Object.keys(plakaWeights).forEach(k=>{guvenliPlaka[k.replace(/\./g,'_DOT_')]=plakaWeights[k];});
-    let guvenliGrup={};Object.keys(stokGruplari).forEach(k=>{guvenliGrup[k.replace(/\./g,'_DOT_')]=stokGruplari[k];});
-    const data={kullanicilar,gecmisVeriler,siraNo,silinenSiralar,aktarilanEvraklar,silinenEvraklarArsivi,stokBilgileri:guvenliStok,plakaWeights:guvenliPlaka,stokGruplari:guvenliGrup,lastUpdated:firebase.database.ServerValue.TIMESTAMP};
-    return database.ref('sacKesim/').set(data).catch(e=>console.error("Firebase hatası:",e));
+// ============ DÜZELTİLMİŞ FIREBASE VERİ KAYIT FONKSİYONLARI ============
+
+// Artık TÜM veriyi değil, SADECE değişen kısmı kaydediyoruz
+function saveToFirebase() {
+    // Sadece gerekli verileri ayrı ayrı kaydet - çakışma önler
+    let updates = {};
+    
+    // Kullanıcılar
+    updates['/sacKesim/kullanicilar'] = kullanicilar;
+    // Sıra numarası
+    updates['/sacKesim/siraNo'] = siraNo;
+    // Silinen sıralar
+    updates['/sacKesim/silinenSiralar'] = silinenSiralar;
+    // Aktarılan evraklar
+    updates['/sacKesim/aktarilanEvraklar'] = aktarilanEvraklar;
+    // Silinen evraklar arşivi
+    updates['/sacKesim/silinenEvraklarArsivi'] = silinenEvraklarArsivi;
+    
+    // Stok bilgilerini nokta problemi için dönüştür
+    let guvenliStok = {};
+    Object.keys(stokBilgileri).forEach(k => { guvenliStok[k.replace(/\./g, '_DOT_')] = stokBilgileri[k]; });
+    updates['/sacKesim/stokBilgileri'] = guvenliStok;
+    
+    let guvenliPlaka = {};
+    Object.keys(plakaWeights).forEach(k => { guvenliPlaka[k.replace(/\./g, '_DOT_')] = plakaWeights[k]; });
+    updates['/sacKesim/plakaWeights'] = guvenliPlaka;
+    
+    let guvenliGrup = {};
+    Object.keys(stokGruplari).forEach(k => { guvenliGrup[k.replace(/\./g, '_DOT_')] = stokGruplari[k]; });
+    updates['/sacKesim/stokGruplari'] = guvenliGrup;
+    
+    updates['/sacKesim/lastUpdated'] = firebase.database.ServerValue.TIMESTAMP;
+    
+    // ATOMİK GÜNCELLEME - tüm değişiklikler tek seferde ve çakışmasız
+    return database.ref().update(updates).catch(e => {
+        console.error("Firebase kayıt hatası:", e);
+        return Promise.reject(e);
+    });
 }
 
-function loadFromFirebase(){database.ref('sacKesim/').once('value').then(snapshot=>{const data=snapshot.val();if(data){if(data.gecmisVeriler)gecmisVeriler=data.gecmisVeriler;if(data.siraNo)siraNo=data.siraNo;if(data.silinenSiralar)silinenSiralar=data.silinenSiralar;if(data.aktarilanEvraklar)aktarilanEvraklar=data.aktarilanEvraklar;if(data.silinenEvraklarArsivi)silinenEvraklarArsivi=data.silinenEvraklarArsivi;
-if(data.stokBilgileri){let ts={};Object.keys(data.stokBilgileri).forEach(k=>{ts[k.replace(/_DOT_/g,'.')]=data.stokBilgileri[k];});stokBilgileri=ts;}
-if(data.plakaWeights){let tp={};Object.keys(data.plakaWeights).forEach(k=>{tp[k.replace(/_DOT_/g,'.')]=data.plakaWeights[k];});plakaWeights=tp;}
-if(data.stokGruplari){let tg={};Object.keys(data.stokGruplari).forEach(k=>{tg[k.replace(/_DOT_/g,'.')]=data.stokGruplari[k];});stokGruplari=tg;}
-if(data.kullanicilar)kullanicilar=data.kullanicilar;kullanicilar["Muhammed"]="mhm1234";urunleriGuncelle();gecmisVeriler=gecmisVeriler.filter(e=>!silinenSiralar.includes(e["Sıra No"]));saveToLocal();document.getElementById("syncStatus").innerHTML="✅ Firebase Senkron Aktif";document.getElementById("syncStatus").className="sync-status online";if(aktifKullanici){kullaniciRolGuncelle();stokDuzenleButonKontrol();excelButonlariniKontrol();if(!document.getElementById("oncekiGirislerAlan").classList.contains("hidden"))gecmisListesiniGoster();if(!document.getElementById("ayarlarAlan").classList.contains("hidden")){kullaniciListesiniGoster();silinenEvraklariGoster();}if(!document.getElementById("stokDuzenleAlan").classList.contains("hidden"))stokListesiniGoster();}}else{saveToFirebase();}}).catch(e=>{console.error("Firebase okuma hatası:",e);loadFromLocal();});}
-function syncData(){saveToLocal();saveToFirebase();}
-function excelButonlariniKontrol(){const div=document.getElementById("excelActionsDiv");if(div)div.style.display=isAdmin()?"flex":"none";}
-function stokDuzenleButonKontrol(){document.getElementById("stokDuzenleBtn").style.display=isAdmin()?"inline-block":"none";}
-function kullaniciRolGuncelle(){const badge=document.getElementById("userRolBadge");if(badge)badge.innerHTML=isAdmin()?'<span class="kullanici-rol admin">Admin</span>':'<span class="kullanici-rol kullanici">Kullanıcı</span>';}
-function getSiraNo(){let ms=siraNo+1;while(silinenSiralar.includes(ms))ms++;return ms;}
-function siranoArtir(){siraNo++;syncData();}
-function getDurum(evrak){let a=aktarilanEvraklar.includes(evrak["Sıra No"]);let d=evrak["Duzenlendi"]||false;if(a)return"Excel'e Aktarıldı";if(d)return"Düzenlendi";return"Bekliyor";}
+// YENİ EVRAK KAYDETME - transaction ile güvenli
+function yeniEvrakKaydet(evrak) {
+    return new Promise((resolve, reject) => {
+        // Önce sıra numarasını güvenli şekilde al
+        database.ref('/sacKesim/siraNo').transaction(function(currentSira) {
+            return (currentSira || 0) + 1;
+        }).then(result => {
+            if (result.committed) {
+                let yeniSiraNo = result.snapshot.val();
+                evrak["Sıra No"] = yeniSiraNo;
+                
+                // Evrakları ekle - array değil, push ile ekle
+                let newEvrakRef = database.ref('/sacKesim/gecmisVeriler').push();
+                return newEvrakRef.set(evrak).then(() => {
+                    // Local güncelle
+                    gecmisVeriler.push(evrak);
+                    siraNo = yeniSiraNo;
+                    saveToLocal();
+                    resolve(yeniSiraNo);
+                });
+            } else {
+                reject(new Error("Sıra numarası alınamadı"));
+            }
+        }).catch(reject);
+    });
+}
 
-document.getElementById("loginBtn").onclick=function(){let u=document.getElementById("loginUsername").value.trim();let p=document.getElementById("loginPassword").value.trim();if(kullanicilar[u]&&kullanicilar[u]===p){aktifKullanici=u;document.getElementById("loginPage").style.display="none";document.getElementById("mainPage").style.display="block";document.getElementById("currentUser").textContent=u;kullaniciRolGuncelle();stokDuzenleButonKontrol();excelButonlariniKontrol();anaSayfayaDon();document.getElementById("loginError").style.display="none";loadFromFirebase();}else{document.getElementById("loginError").style.display="block";}};
-document.getElementById("logoutBtn").onclick=function(){aktifKullanici=null;ayarlarAdminOnaylandi=false;document.getElementById("mainPage").style.display="none";document.getElementById("loginPage").style.display="flex";};
-function anaSayfayaDon(){document.getElementById("yeniGirisAlan").classList.remove("hidden");document.getElementById("oncekiGirislerAlan").classList.add("hidden");document.getElementById("ayarlarAlan").classList.add("hidden");document.getElementById("stokDuzenleAlan").classList.add("hidden");document.getElementById("stokGrubu").selectedIndex=0;document.getElementById("urunSecim").style.display="none";document.getElementById("tabloAlan").style.display="none";document.getElementById("tabloAlan").innerHTML="";document.getElementById("mesaj").innerHTML="";seciliOzetTarih="";document.getElementById("ozetTarihInput").value="";}
+// EVRAK GÜNCELLEME
+function evrakGuncelle(evrakId, yeniEvrak) {
+    return database.ref(`/sacKesim/gecmisVeriler/${evrakId}`).update(yeniEvrak).then(() => {
+        // Local güncelle
+        let index = gecmisVeriler.findIndex(e => e["Sıra No"] === yeniEvrak["Sıra No"]);
+        if (index !== -1) gecmisVeriler[index] = yeniEvrak;
+        saveToLocal();
+    });
+}
 
-document.getElementById("stokGrubu").onchange=function(){let g=this.value;let us=document.getElementById("urunKodu");let usd=document.getElementById("urunSecim");let ta=document.getElementById("tabloAlan");if(!g){usd.style.display="none";ta.style.display="none";ta.innerHTML="";return;}usd.style.display="block";us.innerHTML="";let sl=g==="HRD"?tumStoklariGetir():(urunler[g]||[]);sl.forEach(u=>{let o=document.createElement("option");o.value=u;o.textContent=dotTemizle(u)+" - "+getStokIsmi(u);us.appendChild(o);});ta.style.display="none";ta.innerHTML="";};
-document.getElementById("urunKodu").onchange=function(){let sec=Array.from(this.selectedOptions).map(o=>o.value);let ta=document.getElementById("tabloAlan");if(sec.length===0){ta.style.display="none";ta.innerHTML="";return;}let h='<table><thead><tr><th>Stok Kodu</th><th>Stok İsmi</th><th>Miktar</th><th>1 Plaka (kg)</th><th>Toplam Kg</th><th>Açıklama</th></tr></thead><tbody>';sec.forEach((u,idx)=>{let w=getPlakaWeight(u);let isim=getStokIsmi(u);let rid="r"+Date.now()+idx;h+='<tr id="'+rid+'"><td>'+dotTemizle(u)+'</td><td style="text-align:left;font-size:11px;">'+isim+'</td>';h+='<td><input type="number" class="small-input" data-weight="'+w+'" data-rid="'+rid+'" value="1" min="0" step="0.01"></td>';h+='<td><input type="text" class="plaka-input" value="'+formatNumberDisplay(w)+'" readonly></td>';h+='<td><input type="text" class="toplam-input" value="'+formatNumberDisplay(w)+'" readonly></td>';h+='<td><input type="text" class="aciklama-input" placeholder="Açıklama" style="width:120px;"></td></tr>';});h+='</tbody></table>';ta.innerHTML=h;ta.style.display="block";document.querySelectorAll('.small-input').forEach(inp=>{inp.oninput=function(){let m=parseNumber(this.value);let w=parseNumber(this.dataset.weight);let satir=document.getElementById(this.dataset.rid);if(satir){let t=satir.querySelector('.toplam-input');if(t)t.value=formatNumberDisplay(m*w);}};});};
-function kaydetVeGecmiseGit(yonlendir){let satirlar=document.querySelectorAll("#tabloAlan tbody tr");if(satirlar.length===0){document.getElementById("mesaj").innerHTML="<span class='error'>Lütfen en az bir ürün seçin!</span>";return false;}let grup=document.getElementById("stokGrubu").value;if(!grup){document.getElementById("mesaj").innerHTML="<span class='error'>Lütfen stok grubu seçin!</span>";return false;}let ms=getSiraNo();let kalemler=[];satirlar.forEach(tr=>{let sk=tr.cells[0]?tr.cells[0].textContent.trim():"";let si=tr.cells[1]?tr.cells[1].textContent.trim():"";let mi=tr.querySelector('.small-input');let pi=tr.querySelector('.plaka-input');let ti=tr.querySelector('.toplam-input');let ai=tr.querySelector('.aciklama-input');kalemler.push({"Stok Kodu":sk,"Stok İsmi":si,"Miktar":formatNumber(mi?mi.value:"0"),"1 Plaka (kg)":formatNumber(pi?pi.value:"0"),"Toplam Kg":formatNumber(ti?ti.value:"0"),"Açıklama":ai?ai.value:""});});let simdi=new Date();let evrak={"Seri No":SERI_NO,"Sıra No":ms,"Grup":grup,"Olusturan":aktifKullanici,"Duzenleyen":"","Duzenlendi":false,"DuzenlemeTarihi":"","Kayıt Tarihi":simdi.toLocaleDateString('tr-TR'),"Kayıt Saati":simdi.toLocaleTimeString('tr-TR',{hour:'2-digit',minute:'2-digit',second:'2-digit'}),"Kalemler":kalemler};gecmisVeriler.push(evrak);siranoArtir();syncData();document.getElementById("mesaj").innerHTML="<span class='success'>✅ Evrak kaydedildi! Sıra No: "+ms+"</span>";document.getElementById("tabloAlan").innerHTML="";document.getElementById("tabloAlan").style.display="none";document.getElementById("urunKodu").selectedIndex=-1;document.getElementById("stokGrubu").selectedIndex=0;document.getElementById("urunSecim").style.display="none";if(yonlendir)setTimeout(()=>gecmisListesiniGoster(),800);return true;}
+// EVRAK SİLME
+function evrakSilme(silinenEvrak, siraNo) {
+    return database.ref(`/sacKesim/gecmisVeriler`).once('value').then(snapshot => {
+        let foundKey = null;
+        snapshot.forEach(child => {
+            if (child.val()["Sıra No"] === siraNo) {
+                foundKey = child.key;
+            }
+        });
+        if (foundKey) {
+            return database.ref(`/sacKesim/gecmisVeriler/${foundKey}`).remove().then(() => {
+                // Silinenler arşivine ekle
+                let arsivRef = database.ref('/sacKesim/silinenEvraklarArsivi').push();
+                return arsivRef.set(silinenEvrak).then(() => {
+                    // Silinen sıraya ekle
+                    return database.ref('/sacKesim/silinenSiralar').transaction(silinenler => {
+                        let arr = silinenler || [];
+                        if (!arr.includes(siraNo)) arr.push(siraNo);
+                        return arr;
+                    });
+                });
+            });
+        }
+        return Promise.reject(new Error("Evrak bulunamadı"));
+    });
+}
+
+// YENİDEN YÜKLEME FONKSİYONU (dinamik dinleme ile)
+let veriDinleyici = null;
+
+function loadFromFirebase() {
+    if (veriDinleyici) veriDinleyici.off(); // Eski dinleyiciyi kaldır
+    
+    veriDinleyici = database.ref('sacKesim/').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) {
+            // Verileri güvenli şekilde yükle
+            if (data.gecmisVeriler) {
+                // Objeyi array'e çevir (Firebase push ile oluşturulanlar için)
+                if (typeof data.gecmisVeriler === 'object' && !Array.isArray(data.gecmisVeriler)) {
+                    gecmisVeriler = Object.values(data.gecmisVeriler);
+                } else {
+                    gecmisVeriler = data.gecmisVeriler || [];
+                }
+            }
+            if (data.siraNo) siraNo = data.siraNo;
+            if (data.silinenSiralar) silinenSiralar = data.silinenSiralar;
+            if (data.aktarilanEvraklar) aktarilanEvraklar = data.aktarilanEvraklar;
+            if (data.silinenEvraklarArsivi) {
+                if (typeof data.silinenEvraklarArsivi === 'object' && !Array.isArray(data.silinenEvraklarArsivi)) {
+                    silinenEvraklarArsivi = Object.values(data.silinenEvraklarArsivi);
+                } else {
+                    silinenEvraklarArsivi = data.silinenEvraklarArsivi || [];
+                }
+            }
+            
+            // Stok verilerini yükle
+            if (data.stokBilgileri) {
+                let ts = {};
+                Object.keys(data.stokBilgileri).forEach(k => {
+                    ts[k.replace(/_DOT_/g, '.')] = data.stokBilgileri[k];
+                });
+                stokBilgileri = ts;
+            }
+            if (data.plakaWeights) {
+                let tp = {};
+                Object.keys(data.plakaWeights).forEach(k => {
+                    tp[k.replace(/_DOT_/g, '.')] = data.plakaWeights[k];
+                });
+                plakaWeights = tp;
+            }
+            if (data.stokGruplari) {
+                let tg = {};
+                Object.keys(data.stokGruplari).forEach(k => {
+                    tg[k.replace(/_DOT_/g, '.')] = data.stokGruplari[k];
+                });
+                stokGruplari = tg;
+            }
+            if (data.kullanicilar) kullanicilar = data.kullanicilar;
+            
+            // Admin kullanıcıları koru
+            kullanicilar["Muhammed"] = "mhm1234";
+            kullanicilar["Burak"] = "brk2468";
+            
+            urunleriGuncelle();
+            
+            // Silinen evrakları filtrele
+            gecmisVeriler = gecmisVeriler.filter(e => !silinenSiralar.includes(e["Sıra No"]));
+            
+            saveToLocal();
+            
+            document.getElementById("syncStatus").innerHTML = "✅ Firebase Senkron Aktif";
+            document.getElementById("syncStatus").className = "sync-status online";
+            
+            if (aktifKullanici) {
+                kullaniciRolGuncelle();
+                stokDuzenleButonKontrol();
+                excelButonlariniKontrol();
+                
+                // Açık olan ekranı yenile
+                if (!document.getElementById("oncekiGirislerAlan").classList.contains("hidden")) {
+                    gecmisListesiniGoster();
+                }
+                if (!document.getElementById("ayarlarAlan").classList.contains("hidden")) {
+                    kullaniciListesiniGoster();
+                    silinenEvraklariGoster();
+                }
+                if (!document.getElementById("stokDuzenleAlan").classList.contains("hidden")) {
+                    stokListesiniGoster();
+                }
+            }
+        } else {
+            // İlk kez açılıyorsa veriyi oluştur
+            saveToFirebase();
+        }
+    }, (error) => {
+        console.error("Firebase okuma hatası:", error);
+        loadFromLocal();
+        document.getElementById("syncStatus").innerHTML = "⚠️ Çevrimdışı Mod";
+        document.getElementById("syncStatus").className = "sync-status offline";
+    });
+}
+
+// KAYDET BUTONUNU GÜNCELLE
+document.getElementById("kaydetBtn").onclick = async function() {
+    let satirlar = document.querySelectorAll("#tabloAlan tbody tr");
+    if (satirlar.length === 0) {
+        document.getElementById("mesaj").innerHTML = "<span class='error'>Lütfen en az bir ürün seçin!</span>";
+        return false;
+    }
+    let grup = document.getElementById("stokGrubu").value;
+    if (!grup) {
+        document.getElementById("mesaj").innerHTML = "<span class='error'>Lütfen stok grubu seçin!</span>";
+        return false;
+    }
+    
+    let kalemler = [];
+    satirlar.forEach(tr => {
+        let sk = tr.cells[0] ? tr.cells[0].textContent.trim() : "";
+        let si = tr.cells[1] ? tr.cells[1].textContent.trim() : "";
+        let mi = tr.querySelector('.small-input');
+        let pi = tr.querySelector('.plaka-input');
+        let ti = tr.querySelector('.toplam-input');
+        let ai = tr.querySelector('.aciklama-input');
+        kalemler.push({
+            "Stok Kodu": sk,
+            "Stok İsmi": si,
+            "Miktar": formatNumber(mi ? mi.value : "0"),
+            "1 Plaka (kg)": formatNumber(pi ? pi.value : "0"),
+            "Toplam Kg": formatNumber(ti ? ti.value : "0"),
+            "Açıklama": ai ? ai.value : ""
+        });
+    });
+    
+    let simdi = new Date();
+    let evrak = {
+        "Seri No": SERI_NO,
+        "Grup": grup,
+        "Olusturan": aktifKullanici,
+        "Duzenleyen": "",
+        "Duzenlendi": false,
+        "DuzenlemeTarihi": "",
+        "Kayıt Tarihi": simdi.toLocaleDateString('tr-TR'),
+        "Kayıt Saati": simdi.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        "Kalemler": kalemler,
+        "timestamp": firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    document.getElementById("mesaj").innerHTML = "<span style='color:blue;'>⏳ Kaydediliyor...</span>";
+    
+    try {
+        let yeniSiraNo = await yeniEvrakKaydet(evrak);
+        document.getElementById("mesaj").innerHTML = "<span class='success'>✅ Evrak kaydedildi! Sıra No: " + yeniSiraNo + "</span>";
+        
+        // Formu temizle
+        document.getElementById("tabloAlan").innerHTML = "";
+        document.getElementById("tabloAlan").style.display = "none";
+        document.getElementById("urunKodu").selectedIndex = -1;
+        document.getElementById("stokGrubu").selectedIndex = 0;
+        document.getElementById("urunSecim").style.display = "none";
+        
+        return true;
+    } catch (error) {
+        console.error("Kayıt hatası:", error);
+        document.getElementById("mesaj").innerHTML = "<span class='error'>❌ Kayıt hatası! Lütfen tekrar deneyin.</span>";
+        return false;
+    }
+};
 document.getElementById("kaydetBtn").onclick=()=>kaydetVeGecmiseGit(false);
 document.getElementById("kayitSonrasiGecmisBtn").onclick=()=>kaydetVeGecmiseGit(true);
 document.getElementById("yeniGirisBtn").onclick=anaSayfayaDon;
